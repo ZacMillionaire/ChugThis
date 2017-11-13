@@ -1,0 +1,38 @@
+﻿<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.41.0/mapbox-gl.js'></script>
+<link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.41.0/mapbox-gl.css' rel='stylesheet' />
+<link href="~/css/site/mapbox.css" rel="stylesheet" />
+<div id="mapbox-container" style='height: 80%;'>
+
+</div>
+<div id="info"></div>
+@section Scripts {
+    <script type="text/javascript">
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(function (position) {
+                console.log(position.coords.latitude, position.coords.longitude, "@ViewData["MapBoxKey"]");
+                mapboxgl.accessToken = "@ViewData["MapBoxKey"]";
+                var map = new mapboxgl.Map({
+                    container: 'mapbox-container', // container id
+                    style: 'mapbox://styles/mapbox/streets-v9',
+                    center: [position.coords.longitude, position.coords.latitude], // starting position
+                    zoom: 16 // starting zoom
+                });
+
+                map.on('mousemove', function (e) {
+                    document.getElementById('info').innerHTML =
+                        // e.point is the x, y coordinates of the mousemove event relative
+                        // to the top-left corner of the map
+                        JSON.stringify(e.point) + '<br />' +
+                        // e.lngLat is the longitude, latitude geographical position of the event
+                        JSON.stringify(e.lngLat);
+                });
+
+            });
+        } else {
+            alert("can't locate");
+            /* geolocation IS NOT available */
+        }
+        /*
+        */
+    </script>
+}

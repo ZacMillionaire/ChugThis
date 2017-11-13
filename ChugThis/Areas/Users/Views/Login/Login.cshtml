@@ -1,0 +1,25 @@
+﻿@{
+    ViewData["Title"] = "Login";
+}
+<h2>Login</h2>
+<environment names="Development">
+    <a class="button" href="~/Login/GitHub-Dev" style="color: #fff !important; background-color:#333; border-color:#39424a">
+        <span class="icon"><i class="fa fa-github"></i></span>
+        <span class="has-text-weight-bold">
+            GitHub - Dev
+        </span>
+    </a>
+
+    <a class="button" href="~/Login/Facebook-Dev" style="color: #fff !important; background-color:#3b5998; border-color:#496bb2">
+        <span class="icon"><i class="fa fa-facebook"></i></span>
+        <span class="has-text-weight-bold">
+            Facebook - Dev
+        </span>
+    </a>
+</environment>
+<environment exclude="Development">
+    <li><a href="~/Login/Reddit-Dev">RD</a></li>
+    <li><a href="~/Login/GitHub">RH</a></li>
+    <li><a href="~/Login/Facebook"><span class="icon tag is-medium" style="background-color:#3b5998; color: #fff; margin: 0 0.25rem"><i class="fa fa-facebook"></i></span> Fac</a></li>
+</environment>
+
