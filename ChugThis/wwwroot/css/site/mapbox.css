@@ -1,5 +1,6 @@
 ﻿#mapbox-container {
     width: 100%;
+    background-color: #aaa;
 }
 html {
     height: 100%;

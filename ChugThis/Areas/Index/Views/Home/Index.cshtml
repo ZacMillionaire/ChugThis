@@ -2,7 +2,7 @@
 <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.41.0/mapbox-gl.css' rel='stylesheet' />
 <link href="~/css/site/mapbox.css" rel="stylesheet" />
 <div id="mapbox-container" style='height: 80%;'>
-
+    Loading...
 </div>
 <div id="info"></div>
 @section Scripts {
@@ -15,7 +15,7 @@
                 _MapLoaded = false;
 
             function RenderMapBox(initialPosition) {
-
+                document.getElementById("mapbox-container").innerHTML = "";
                 console.log("Loading...")
 
                 console.log(initialPosition.coords);
@@ -144,6 +144,12 @@
 
                 // auto zoom for clusters
                 _MapBox.on('click', 'clusters', function (e) {
+                    alert("click");
+                    _MapBox.flyTo({ center: e.features[0].geometry.coordinates, zoom: 20 });
+                });
+
+                _MapBox.on('touchend', 'clusters', function (e) {
+                    alert("touch");
                     _MapBox.flyTo({ center: e.features[0].geometry.coordinates, zoom: 20 });
                 });
 
