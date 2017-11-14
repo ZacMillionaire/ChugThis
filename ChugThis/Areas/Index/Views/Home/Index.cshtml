@@ -146,11 +146,6 @@
                     _MapBox.flyTo({ center: e.features[0].geometry.coordinates, zoom: 20 });
                 });
 
-                _MapBox.on('touchend', 'clusters', function (e) {
-                    alert("touch");
-                    _MapBox.flyTo({ center: e.features[0].geometry.coordinates, zoom: 20 });
-                });
-
                 // Change the cursor to a pointer when the it enters a feature in the 'symbols' layer.
                 _MapBox.on('mouseenter', 'clusters', function () {
                     _MapBox.getCanvas().style.cursor = 'pointer';
