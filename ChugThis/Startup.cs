@@ -30,7 +30,7 @@ namespace Nulah.ChugThis {
             _ApplicationSettings = new AppSettings();
             Configuration.Bind(_ApplicationSettings);
 
-            if(_ApplicationSettings.ConnectionStrings.Redis.BaseKey.EndsWith(':')) {
+            if(!_ApplicationSettings.ConnectionStrings.Redis.BaseKey.EndsWith(':')) {
                 throw new SystemException("Redis base key must end with a colon(':')");
             }
         }
