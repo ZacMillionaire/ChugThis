@@ -27,6 +27,7 @@
                     zoom: 16 // starting zoom
                 });
 
+
                 /*
                 map.addControl(new mapboxgl.GeolocateControl({
                     positionOptions: {
@@ -79,7 +80,7 @@
                         },
                         cluster: true,
                         clusterMaxZoom: 20, // Max zoom to cluster points on
-                        clusterRadius: 25, // Radius of each cluster when clustering points (defaults to 50)
+                        clusterRadius: 20, // Radius of each cluster when clustering points (defaults to 50)
                     });
 
                     _MapBox.addLayer({
@@ -128,7 +129,8 @@
                         filter: ["!has", "point_count"],
                         "layout": {
                             "icon-image": "marker-15",
-                            "icon-size":1
+                            "icon-size": 1,
+                            "icon-allow-overlap": true,
                         }
                     });
 
@@ -145,6 +147,15 @@
                     alert("click");
                     _MapBox.flyTo({ center: e.features[0].geometry.coordinates, zoom: 20 });
                 });
+                
+                _MapBox.on('touchstart', 'clusters', function (e) {
+                    _MapBox.flyTo({ center: e.features[0].geometry.coordinates, zoom: 19 });
+                });
+                /*
+                _MapBox.on('dblclick', 'clusters', function (e) {
+                    alert("long press");
+                    _MapBox.flyTo({ center: e.features[0].geometry.coordinates, zoom: 20 });
+                });*/
 
                 // Change the cursor to a pointer when the it enters a feature in the 'symbols' layer.
                 _MapBox.on('mouseenter', 'clusters', function () {
@@ -154,6 +165,10 @@
                 // Change it back to a pointer when it leaves.
                 _MapBox.on('mouseleave', 'clusters', function () {
                     _MapBox.getCanvas().style.cursor = '';
+                });
+
+                _MapBox.on("drag", function (e) {
+                    UpdateLocDebug(e.point, e.lngLat, _MapBox.getZoom(), e.position);
                 });
 
                 /*
@@ -167,16 +182,7 @@
                 });
             }
 
-            /*
-            // conflicts with watchLocation. Basically this will be ignored if you use navigator.geolocation.getCurrentPosition in the same scope.
-            // Neat.
-            navigator.geolocation.getCurrentPosition(function (position) {
-                console.log("adsf");
-                RenderMapBox(position);
-            }, function (err) {
-                console.log("fucking garbage", err)
-            });
-            */
+
 
             function debounce(func, wait, immediate) {
                 var timeout;
@@ -210,14 +216,24 @@
                         if (JSON.stringify(previousLocation) !== JSON.stringify(_UserLocation)) {
                             UpdateUserLocation(_MapBox, previousLocation, _UserLocation);
                         }
-                    } else {
-                        RenderMapBox(NewLocation);
-                    }
+                    }// else {
+                        //RenderMapBox(NewLocation);
+                    //}
                 }
             );
 
+            // conflicts with watchLocation. Basically this will be ignored if you use navigator.geolocation.getCurrentPosition in the same scope.
+            // Neat.
+            navigator.geolocation.getCurrentPosition(function (position) {
+                //alert("adsf");
+                RenderMapBox(position);
+            }, function (err) {
+                console.log("fucking garbage", err)
+            });
+
+
             function UpdateUserLocation(Map, OriginalLocation, NewLocation) {
-                console.log("old",OriginalLocation,"new", NewLocation);
+                console.log("old", OriginalLocation, "new", NewLocation);
                 Map.getSource("UserLocation")
                     .setData(CurrentUserLocation());
 
