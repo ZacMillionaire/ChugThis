@@ -7,14 +7,25 @@ using Nulah.ChugThis.Filters;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Nulah.ChugThis.Models.Users;
+using StackExchange.Redis;
+using Nulah.ChugThis.Models;
 
 namespace ChugThis.Areas.Users.Controllers {
     [Area("Users")]
     public class LoginController : Controller {
 
+        private readonly IDatabase _redis;
+        private readonly AppSettings _settings;
+
+        public LoginController(IDatabase Redis, AppSettings Settings) {
+            _redis = Redis;
+            _settings = Settings;
+        }
+
         [Route("~/Login")]
         [UserFilter(RequiredLoggedInState: false)]
         public IActionResult Login() {
+            ViewData["Providers"] = _settings.OAuthProviders;
             return View();
         }
 

@@ -1,5 +1,7 @@
-﻿@{
+﻿@using Nulah.ChugThis.Models;
+@{
     ViewData["Title"] = "Login";
+    Provider[] Providers = (Provider[])ViewData["Providers"];
 }
 <h2>Login</h2>
 <environment names="Development">
@@ -18,8 +20,22 @@
     </a>
 </environment>
 <environment exclude="Development">
-    <li><a href="~/Login/Reddit-Dev">RD</a></li>
-    <li><a href="~/Login/GitHub">RH</a></li>
-    <li><a href="~/Login/Facebook"><span class="icon tag is-medium" style="background-color:#3b5998; color: #fff; margin: 0 0.25rem"><i class="fa fa-facebook"></i></span> Fac</a></li>
+    <a class="button" href="~/Login/Facebook" style="color: #fff !important; background-color:#3b5998; border-color:#496bb2">
+        <span class="icon"><i class="fa fa-facebook"></i></span>
+        <span class="has-text-weight-bold">
+            Facebook
+        </span>
+    </a>
 </environment>
-
+@*
+        Come back to this later - still lacking a few key things like setting the right colour + icon.
+        Probably do some work on setting these details in the controller or something. Just as long as it's not in appsettings.json.
+    @foreach(var provider in Providers) {
+        <a class="button" href="~/Login/@provider.AuthenticationScheme" style="color: #fff !important; background-color:#333; border-color:#39424a">
+            <span class="icon"><i class="fa fa-github"></i></span>
+            <span class="has-text-weight-bold">
+                @provider.AuthenticationScheme
+            </span>
+        </a>
+    }
+*@

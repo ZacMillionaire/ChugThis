@@ -7,10 +7,15 @@ using System.Threading.Tasks;
 namespace Nulah.ChugThis.Models {
 
     public class AppSettings {
+        public Config Config { get; set; }
         public ConnectionStrings ConnectionStrings { get; set; }
         public Logging Logging { get; set; }
         public Provider[] OAuthProviders { get; set; }
         public ApiKeys ApiKeys { get; set; }
+    }
+
+    public class Config {
+        public string Environment { get; set; }
     }
 
     public class ConnectionStrings {
