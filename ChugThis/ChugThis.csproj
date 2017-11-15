@@ -4,6 +4,7 @@
     <TargetFramework>netcoreapp2.0</TargetFramework>
     <RootNamespace>Nulah.ChugThis</RootNamespace>
     <AssemblyName>Nulah.ChugThis</AssemblyName>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,5 +29,9 @@
     <Folder Include="wwwroot\js\" />
     <Folder Include="wwwroot\lib\" />
   </ItemGroup>
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="powershell.exe -NoProfile -NonInteractive -File &quot;$(SolutionDir)ChugThis\pre-build.ps1&quot;" />
+  </Target>
 
 </Project>

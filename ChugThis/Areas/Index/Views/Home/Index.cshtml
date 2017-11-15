@@ -10,78 +10,96 @@
 
 
             var _MapBox,
-                _UserLocation, // [long, lat]
+                _UserLocation,
                 _MapLoaded = false;
+
+            function ReturnCoordObject(Long, Lat) {
+                return {
+                    Latitude: Lat,
+                    Longitude: Long
+                };
+            }
+
+            // CenterPoint is from ReturnCoordObject
+            function GetFuckwitsNearLocation(CenterPoint) {
+
+                console.log(CenterPoint);
+
+                return {
+                    "type": "FeatureCollection",
+                    "features": [
+                        {
+                            "type": "Feature",
+                            "properties": {},
+                            "geometry": {
+                                "type": "Point",
+                                "coordinates": [
+                                    153.00760368874035,
+                                    -27.4677551075602,
+                                ]
+                            }
+                        },
+                        {
+                            "type": "Feature",
+                            "properties": {},
+                            "geometry": {
+                                "type": "Point",
+                                "coordinates": [
+                                    153.00777106795368,
+                                    -27.4677551075602,
+                                ]
+                            }
+                        },
+                        {
+                            "type": "Feature",
+                            "properties": {},
+                            "geometry": {
+                                "type": "Point",
+                                "coordinates": [
+                                    153.00760368874035,
+                                    -27.46780222416966,
+                                ]
+                            }
+                        }
+                    ]
+                };
+            }
 
             function RenderMapBox(initialPosition) {
                 console.log("Loading...")
 
                 console.log(initialPosition.coords);
-                _UserLocation = [initialPosition.coords.longitude, initialPosition.coords.latitude];
+                _UserLocation = ReturnCoordObject(initialPosition.coords.longitude, initialPosition.coords.latitude);
 
                 mapboxgl.accessToken = "@ViewData["MapBoxKey"]";
                 _MapBox = new mapboxgl.Map({
                     container: 'mapbox-container', // container id
                     style: 'mapbox://styles/mapbox/light-v9',
-                    center: _UserLocation, // starting position
+                    center: [_UserLocation.Longitude, _UserLocation.Latitude], // starting position, [long,lat]
                     zoom: 16 // starting zoom
                 });
 
 
-                /*
-                map.addControl(new mapboxgl.GeolocateControl({
+
+                _MapBox.addControl(new mapboxgl.GeolocateControl({
                     positionOptions: {
-                        enableHighAccuracy: true
+                        enableHighAccuracy: true,
+                        maximumAge: 1000
                     },
                     trackUserLocation: true
                 }));
-                */
+
                 _MapBox.on("load", function () {
                     console.log("loaded");
+
                     _MapBox.addSource("fuckwits", {
                         "type": "geojson",
-                        "data": {
-                            "type": "FeatureCollection",
-                            "features": [
-                                {
-                                    "type": "Feature",
-                                    "properties": {},
-                                    "geometry": {
-                                        "type": "Point",
-                                        "coordinates": [
-                                            153.00760368874035,
-                                            -27.4677551075602,
-                                        ]
-                                    }
-                                },
-                                {
-                                    "type": "Feature",
-                                    "properties": {},
-                                    "geometry": {
-                                        "type": "Point",
-                                        "coordinates": [
-                                            153.00777106795368,
-                                            -27.4677551075602,
-                                        ]
-                                    }
-                                },
-                                {
-                                    "type": "Feature",
-                                    "properties": {},
-                                    "geometry": {
-                                        "type": "Point",
-                                        "coordinates": [
-                                            153.00760368874035,
-                                            -27.46780222416966,
-                                        ]
-                                    }
-                                }
-                            ]
-                        },
+                        "data": GetFuckwitsNearLocation(_UserLocation),
                         cluster: true,
                         clusterMaxZoom: 20, // Max zoom to cluster points on
                         clusterRadius: 20, // Radius of each cluster when clustering points (defaults to 50)
                     });
+
 
                     _MapBox.addLayer({
                         id: "clusters",
@@ -142,46 +160,46 @@
 
                 });
 
-                // auto zoom for clusters
-                _MapBox.on('click', 'clusters', function (e) {
-                    alert("click");
-                    _MapBox.flyTo({ center: e.features[0].geometry.coordinates, zoom: 20 });
-                });
-                
-                _MapBox.on('touchstart', 'clusters', function (e) {
-                    _MapBox.flyTo({ center: e.features[0].geometry.coordinates, zoom: 19 });
-                });
-                /*
-                _MapBox.on('dblclick', 'clusters', function (e) {
-                    alert("long press");
-                    _MapBox.flyTo({ center: e.features[0].geometry.coordinates, zoom: 20 });
-                });*/
+                BindMouseEvents("clusters", { DesktopZoom: 20, MobileZoom: 18 });
+                BindMouseEvents("symbols", { DesktopZoom: 19, MobileZoom: 17 });
 
-                // Change the cursor to a pointer when the it enters a feature in the 'symbols' layer.
-                _MapBox.on('mouseenter', 'clusters', function () {
-                    _MapBox.getCanvas().style.cursor = 'pointer';
+                _MapBox.on("dragend", function (e) {
+                    var mapcenter = _MapBox.getCenter();
+                    _MapBox.getSource("fuckwits")
+                        .setData(GetFuckwitsNearLocation(ReturnCoordObject(mapcenter.lng, mapcenter.lat)));
                 });
 
-                // Change it back to a pointer when it leaves.
-                _MapBox.on('mouseleave', 'clusters', function () {
-                    _MapBox.getCanvas().style.cursor = '';
-                });
-
-                _MapBox.on("drag", function (e) {
-                    UpdateLocDebug(e.point, e.lngLat, _MapBox.getZoom(), e.position);
-                });
-
-                /*
-                var updateLoc = debounce(function (a, b, c, d) {
-                    UpdateLocDebug(a,b,c,d);
-                }, 50);
-                */
+                // Debug
                 _MapBox.on('mousemove', function (e) {
                     //updateLoc(e.point, e.lngLat, _MapBox.getZoom(), e.position);
                     UpdateLocDebug(e.point, e.lngLat, _MapBox.getZoom(), e.position);
                 });
             }
 
+            function BindMouseEvents(LayerTarget, ZoomOptions) {
+
+                // auto zoom for layers
+                _MapBox.on('click', LayerTarget, function (e) {
+                    _MapBox.flyTo({ center: e.features[0].geometry.coordinates, zoom: ZoomOptions.DesktopZoom });
+                });
+
+                // for mobile
+                _MapBox.on('touchstart', LayerTarget, function (e) {
+                    _MapBox.flyTo({ center: e.features[0].geometry.coordinates, zoom: ZoomOptions.MobileZoom });
+                });
+
+                // Trigger the add marker
+
+                // Change the cursor to a pointer when the it enters a feature in the 'symbols' layer.
+                _MapBox.on('mouseenter', LayerTarget, function () {
+                    _MapBox.getCanvas().style.cursor = 'pointer';
+                });
+
+                // Change it back to a pointer when it leaves.
+                _MapBox.on('mouseleave', LayerTarget, function () {
+                    _MapBox.getCanvas().style.cursor = '';
+                });
+            }
 
 
             function debounce(func, wait, immediate) {
@@ -198,51 +216,42 @@
                     if (callNow) func.apply(context, args);
                 };
             };
-
-            //var debouncedUpdate = debounce(function (NewLocation) {
-            //    if (_MapLoaded) {
-            //        var previousLocation = _UserLocation;
-            //        _UserLocation = [NewLocation.coords.longitude, NewLocation.coords.latitude];
-            //        UpdateUserLocation(_MapBox, previousLocation, _UserLocation);
-            //    }
-            //}, 0,true);
-
+            /*
+            // commented out for now, deciding to use the Mapbox default user tracker instead.
             navigator.geolocation.watchPosition(
                 function (NewLocation) {
                     if (_MapLoaded) {
                         var previousLocation = _UserLocation;
-                        _UserLocation = [NewLocation.coords.longitude, NewLocation.coords.latitude];
+                        _UserLocation = ReturnCoordObject(NewLocation.coords.latitude, NewLocation.coords.longitude);
                         // Weird double call prevention, it's probably a Chome devtools thing, but who knows with JavaScript
                         if (JSON.stringify(previousLocation) !== JSON.stringify(_UserLocation)) {
                             UpdateUserLocation(_MapBox, previousLocation, _UserLocation);
                         }
-                    }// else {
-                        //RenderMapBox(NewLocation);
-                    //}
+                    }
                 }
             );
-
-            // conflicts with watchLocation. Basically this will be ignored if you use navigator.geolocation.getCurrentPosition in the same scope.
-            // Neat.
+            */
+            // conflicts with watchLocation if called before it. Basically this will be ignored if you use navigator.geolocation.getCurrentPosition before watchPosition.
+            // Why? Who knows. Either way this needs to be last to make sure dragpan works for map box on mobile.
             navigator.geolocation.getCurrentPosition(function (position) {
-                //alert("adsf");
                 RenderMapBox(position);
             }, function (err) {
-                console.log("fucking garbage", err)
+                console.log(err); // I'd love to shove this into an XHR call to log the error later for mobile stuff.
+                // probably have it trigger a modal to let the user know as well.
             });
 
 
             function UpdateUserLocation(Map, OriginalLocation, NewLocation) {
-                console.log("old", OriginalLocation, "new", NewLocation);
+                //console.log("old", OriginalLocation, "new", NewLocation);
                 Map.getSource("UserLocation")
                     .setData(CurrentUserLocation());
-
             }
 
+            // Looks useless, but the same code would be used in multiple places and something tells me I'll want to do more with this later.
             function CurrentUserLocation() {
                 return {
                     type: "Point",
-                    coordinates: _UserLocation
+                    coordinates: [_UserLocation.Longitude, _UserLocation.Latitude]
                 };
             }
 
@@ -270,13 +279,11 @@
                     // to the top-left corner of the map
                     JSON.stringify(point) + '<br />' +
                     // e.lngLat is the longitude, latitude geographical position of the event
-                JSON.stringify(lngLat) + "<br />" + JSON.stringify(_UserLocation);
+                    JSON.stringify(lngLat) + "<br />" + JSON.stringify(_UserLocation);
             }
         } else {
             alert("can't locate");
             /* geolocation IS NOT available */
         }
-        /*
-        */
     </script>
 }

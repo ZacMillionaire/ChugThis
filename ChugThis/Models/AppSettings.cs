@@ -12,6 +12,17 @@ namespace Nulah.ChugThis.Models {
         public Logging Logging { get; set; }
         public Provider[] OAuthProviders { get; set; }
         public ApiKeys ApiKeys { get; set; }
+        public Version Version { get; set; }
+    }
+
+    public class Version {
+        public int Major { get; set; }
+        public int Minor { get; set; }
+        public int Patch { get; set; }
+        public string Environment { get; set; }
+        public int Build { get; set; }
+        public string BuildTime { get; set; }
+        public string VersionString { get; set; }
     }
 
     public class Config {

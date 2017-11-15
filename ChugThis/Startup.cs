@@ -18,6 +18,9 @@ using Nulah.ChugThis.Extensions;
 using Microsoft.Extensions.Logging;
 using NulahCore.Extensions.Logging;
 using Nulah.ChugThis.Controllers.Maps;
+using System.Runtime.InteropServices;
+using System.Reflection;
+using Newtonsoft.Json;
 
 namespace Nulah.ChugThis {
     public class Startup {
@@ -29,6 +32,35 @@ namespace Nulah.ChugThis {
             Configuration = configuration;
             _ApplicationSettings = new AppSettings();
             Configuration.Bind(_ApplicationSettings);
+
+            var versionFile = System.IO.Directory.GetCurrentDirectory() + "\\version.json";
+            // Check if a version file exists. If not, create a new one.
+            if(!System.IO.File.Exists(versionFile)) {
+                // If we're in development, assume this is a visual studio build
+                if(_ApplicationSettings.Config.Environment == "Development") {
+                    var file = System.IO.File.Create(versionFile);
+                    var versionContents = new Models.Version {
+                        Major = 0,
+                        Minor = 0,
+                        Patch = 0,
+                        Build = 1,
+                        BuildTime = DateTime.UtcNow.ToString("dd-MM-yyyy"),
+                        Environment = _ApplicationSettings.Config.Environment,
+                        VersionString = $"0.0.0-{_ApplicationSettings.Config.Environment}.1+{DateTime.UtcNow.ToString("dd-MM-yyyy")}"
+                    };
+
+                    var json = JsonConvert.SerializeObject(versionContents);
+                    using(System.IO.StreamWriter sw = new System.IO.StreamWriter(file)) {
+                        sw.WriteLine(json);
+                    }
+                } else {
+                    // If we're in any other environment, throw an exception.
+                    throw new SystemException("Version file missing");
+                }
+            }
+
+            _ApplicationSettings.Version = JsonConvert.DeserializeObject<Models.Version>(System.IO.File.ReadAllText(versionFile));
+
 
             if(!_ApplicationSettings.ConnectionStrings.Redis.BaseKey.EndsWith(':')) {
                 throw new SystemException("Redis base key must end with a colon(':')");
