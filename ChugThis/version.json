@@ -3,7 +3,7 @@
     "Minor":  0,
     "Patch":  0,
     "Environment":  "Development",
-    "Build":  9,
+    "Build":  22,
     "BuildTime":  "15-11-2017",
-    "VersionString":  "0.0.0-Development.9+15-11-2017"
+    "VersionString":  "0.0.0-Development.22+15-11-2017"
 }
