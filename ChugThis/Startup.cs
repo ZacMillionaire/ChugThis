@@ -132,13 +132,13 @@ namespace Nulah.ChugThis {
                         // parse the resulting JSON to extract the relevant information, and add the correct claims.
                         OnCreatingTicket = async context => {
                             await UserOAuth.RegisterUser(context, loginProvider, Redis, _ApplicationSettings);
-                        },
+                        },/*
                         OnRedirectToAuthorizationEndpoint = context => {
                             var uri = HttpUtility.ParseQueryString(context.RedirectUri);
                             uri["redirect_uri"] = uri["redirect_uri"].Replace("http","https");
                             context.Response.Redirect(uri.ToString());
                             return Task.FromResult(0);
-                        },
+                        },*/
                         OnRemoteFailure = async context => {
                             await UserOAuth.OAuthRemoteFailure(context, loginProvider, Redis, _ApplicationSettings);
                             context.HttpContext.Response.StatusCode = 500;
