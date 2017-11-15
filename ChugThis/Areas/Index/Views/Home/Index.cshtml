@@ -169,11 +169,16 @@
                         .setData(GetFuckwitsNearLocation(ReturnCoordObject(mapcenter.lng, mapcenter.lat)));
                 });
 
+                var addmarker = debounce(function (geoloc) { AddFuckwitMarker(geoloc); }, 250);
+
                 // Trigger the add marker
                 _MapBox.on("click", function (e) {
-                    console.log(e);
-                    UpdateLocDebug(e.point, e.lngLat, _MapBox.getZoom(), e.position);
-             });
+                    // because apparently there's no other way to differentiate between a map click and a layer click
+                    if (ClickLocationHasNoLayerFeatures(e.point)){
+                        AddFuckwitMarker(ReturnCoordObject(e.lngLat.lng, e.lngLat.lat));
+                    }
+                    //UpdateLocDebug(e.point, e.lngLat, _MapBox.getZoom(), e.position);
+                 });
 
                 // Debug
                 _MapBox.on('mousemove', function (e) {
@@ -182,10 +187,31 @@
                 });
             }
 
+            // MapPoint: [x,y]
+            // returns true if there are no symbols or cluster markers at the clicked MapPoint.
+            // If false, it means the user is clicking a symbol, and not clicking to add a new fuckwit location
+            function ClickLocationHasNoLayerFeatures(MapPoint) {
+                var features = _MapBox.queryRenderedFeatures(MapPoint, { layers: ["clusters","symbols"]});
+                if (features.length === 0) {
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+
+            // Starts the marker adding process
+            // will shrink the map down and open the form control or something.
+            // would like to do it with as minimal javascript as possible.
+            function AddFuckwitMarker(GeoObject) {
+                console.log("adding fuckwit", GeoObject);
+                _MapBox.flyTo({ center: [GeoObject.Longitude, GeoObject.Latitude], zoom: 19});
+            }
+
             function BindMouseEvents(LayerTarget, ZoomOptions) {
 
                 // auto zoom for layers
                 _MapBox.on('click', LayerTarget, function (e) {
+                    console.log(LayerTarget + " click", e);
                     _MapBox.flyTo({ center: e.features[0].geometry.coordinates, zoom: ZoomOptions.DesktopZoom });
                 });
 
