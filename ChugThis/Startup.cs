@@ -33,7 +33,7 @@ namespace Nulah.ChugThis {
             _ApplicationSettings = new AppSettings();
             Configuration.Bind(_ApplicationSettings);
 
-            var versionFile = System.IO.Directory.GetCurrentDirectory() + "\\version.json";
+            var versionFile = System.IO.Directory.GetCurrentDirectory() + "/version.json";
             // Check if a version file exists. If not, create a new one.
             if(!System.IO.File.Exists(versionFile)) {
                 // If we're in development, assume this is a visual studio build
