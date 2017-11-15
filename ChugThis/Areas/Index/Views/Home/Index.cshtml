@@ -169,6 +169,11 @@
                         .setData(GetFuckwitsNearLocation(ReturnCoordObject(mapcenter.lng, mapcenter.lat)));
                 });
 
+                // Trigger the add marker
+                _MapBox.on("click", function (e) {
+                    console.log(e);
+                });
+
                 // Debug
                 _MapBox.on('mousemove', function (e) {
                     //updateLoc(e.point, e.lngLat, _MapBox.getZoom(), e.position);
@@ -187,8 +192,6 @@
                 _MapBox.on('touchstart', LayerTarget, function (e) {
                     _MapBox.flyTo({ center: e.features[0].geometry.coordinates, zoom: ZoomOptions.MobileZoom });
                 });
-
-                // Trigger the add marker
 
                 // Change the cursor to a pointer when the it enters a feature in the 'symbols' layer.
                 _MapBox.on('mouseenter', LayerTarget, function () {
