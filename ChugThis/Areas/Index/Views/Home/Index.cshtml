@@ -172,7 +172,8 @@
                 // Trigger the add marker
                 _MapBox.on("click", function (e) {
                     console.log(e);
-                });
+                    UpdateLocDebug(e.point, e.lngLat, _MapBox.getZoom(), e.position);
+             });
 
                 // Debug
                 _MapBox.on('mousemove', function (e) {
