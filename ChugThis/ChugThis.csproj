@@ -30,8 +30,8 @@
     <Folder Include="wwwroot\lib\" />
   </ItemGroup>
 
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="if &quot;$(DevEnvDir)&quot; == &quot;C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\Common7\IDE\&quot; (&#xD;&#xA;powershell.exe -NoProfile -NonInteractive -File &quot;$(SolutionDir)ChugThis\pre-build.ps1&quot;&#xD;&#xA;)" />
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(OS)' == 'Windows_NT'">
+    <Exec Command="powershell.exe -NoProfile -NonInteractive -File &quot;$(SolutionDir)ChugThis\pre-build.ps1&quot;&#xD;&#xA;" />
   </Target>
 
 </Project>
