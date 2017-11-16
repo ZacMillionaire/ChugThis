@@ -1,7 +1,7 @@
 ﻿<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.41.0/mapbox-gl.js'></script>
 <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.41.0/mapbox-gl.css' rel='stylesheet' />
 <link href="~/css/site/mapbox.css" rel="stylesheet" />
-<div id="mapbox-container" style='height: 80%;'>
+<div id="mapbox-container">
 </div>
 <div id="info"></div>
 @section Scripts {
@@ -203,8 +203,12 @@
             // will shrink the map down and open the form control or something.
             // would like to do it with as minimal javascript as possible.
             function AddFuckwitMarker(GeoObject) {
+                document.getElementById("mapbox-container").classList.add("small-view");
+                setTimeout(function () {
+                    _MapBox.resize();
                 console.log("adding fuckwit", GeoObject);
-                _MapBox.flyTo({ center: [GeoObject.Longitude, GeoObject.Latitude], zoom: 19});
+                _MapBox.flyTo({ center: [GeoObject.Longitude, GeoObject.Latitude], zoom: 19 });
+                }, 310);
             }
 
             function BindMouseEvents(LayerTarget, ZoomOptions) {

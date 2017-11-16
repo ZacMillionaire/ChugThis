@@ -1,10 +1,19 @@
 ﻿#mapbox-container {
     width: 100%;
+    height: 80%;
     background-color: #aaa;
+    transition: width 0.3s ease-in-out, height 0.3s ease-in-out;
 }
+
+    #mapbox-container.small-view {
+        height: 50%;
+        width: 50%;
+    }
+
 html {
     height: 100%;
 }
+
 body {
     height: 100%;
 }

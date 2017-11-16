@@ -133,6 +133,10 @@ namespace Nulah.ChugThis {
                         OnCreatingTicket = async context => {
                             await UserOAuth.RegisterUser(context, loginProvider, Redis, _ApplicationSettings);
                         },/*
+                        // Here until I figure out what magic kestrel needs to actually work with https.
+                        // Apparently it's not a thing you should do (which is why I have it proxied behind nginx): https://github.com/aspnet/KestrelHttpServer/issues/1108
+                        // but it's still fucking annoying having my redirect_uri's going to http, because https causes a weird handshake bug because asdfklsflkashfdaslkf
+                        // I'm a "professional", btw. There's no way you'd actually think that looking at my code though.
                         OnRedirectToAuthorizationEndpoint = context => {
                             var uri = HttpUtility.ParseQueryString(context.RedirectUri);
                             uri["redirect_uri"] = uri["redirect_uri"].Replace("http","https");
