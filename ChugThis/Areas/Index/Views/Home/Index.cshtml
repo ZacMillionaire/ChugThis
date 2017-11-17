@@ -6,4 +6,29 @@
 <div id="info"></div>
 @section Scripts {
     <script type="text/javascript" src="~/js/Maps/map.js"></script>
+    <script type="text/javascript">
+        if ("geolocation" in navigator) {
+            navigator.geolocation.getCurrentPosition(function (position) {
+                var cm = new ChugMap("@ViewData["MapBoxKey"]",
+                    {
+                        Container: 'mapbox-container',
+                        Zoom: {
+                            StartZoom: 16,
+                            Desktop: 19,
+                            Mobile: 18
+                        }
+                    }
+                );
+                cm.RenderMap(position);
+            }, function (err) {
+                console.log(err); // I'd love to shove this into an XHR call to log the error later for mobile stuff.
+                // probably have it trigger a modal to let the user know as well.
+            });
+
+            RenderMap();
+        } else {
+            alert("can't locate");
+            /* geolocation IS NOT available */
+        }
+    </script>
 }
