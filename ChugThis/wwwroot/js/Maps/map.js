@@ -17,6 +17,7 @@
     var _UserLocation = null;
     var _Options = Options;
     var _TempFuckwitMarker = null;
+    var _TouchDrag = false;
 
     function ReturnCoordObject(Long, Lat) {
         return {
@@ -82,10 +83,20 @@
             AddFuckwitMarker(ReturnCoordObject(e.lngLat.lng, e.lngLat.lat), e.originalEvent);
         });
 
+        _MapBox.on("touchstart", function (e) {
+            _TouchDrag = false;
+        });
         // Trigger the add marker for mobile
         _MapBox.on("touchend", function (e) {
-            AddFuckwitMarker(ReturnCoordObject(e.lngLat.lng, e.lngLat.lat), e.originalEvent);
+            if (_TouchDrag === false) {
+                AddFuckwitMarker(ReturnCoordObject(e.lngLat.lng, e.lngLat.lat), e.originalEvent);
+            }
         });
+
+        _MapBox.on("touchmove", function (e) {
+            _TouchDrag = true;
+        });
+
     }
 
     function RenderFuckwits(GeoLoc, MapBox) {
@@ -112,7 +123,9 @@
                 MoveToFuckwitMarker(e, marker);
             });
             el.addEventListener("touchend", function (e) {
-                MoveToFuckwitMarker(e, marker);
+                console.log
+                //MoveToFuckwitMarker(e, marker);
+                //e.preventDefault();
             })
         });
     }
