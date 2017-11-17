@@ -11,15 +11,15 @@
     }
 
     #mapbox-container .custom-marker-CHANGEME {
-        width: 10px;
-        height: 10px;
-        border-radius: 10px;
+        width: 20px;
+        height: 20px;
+        border-radius: 20px;
         cursor: pointer;
     }
     #mapbox-container .add-marker-CHANGEME {
-        width: 15px;
-        height: 15px;
-        border-radius: 15px;
+        width: 25px;
+        height: 25px;
+        border-radius: 25px;
         cursor: pointer;
     }
 

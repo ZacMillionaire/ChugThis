@@ -93,6 +93,7 @@
             }
         });
 
+        // disable tap events if a drag occurs (user is probably panning or pinch zooming, not tapping)
         _MapBox.on("touchmove", function (e) {
             _TouchDrag = true;
         });
