@@ -60,6 +60,17 @@
                                     -27.46780222416966,
                                 ]
                             }
+                        },
+                        {
+                            "type": "Feature",
+                            "properties": {},
+                            "geometry": {
+                                "type": "Point",
+                                "coordinates": [
+                                    153.00989439999998,
+                                    -27.4657359,
+                                ]
+                            }
                         }
                     ]
                 };
@@ -89,6 +100,7 @@
                     trackUserLocation: true
                 }));
 
+
                 _MapBox.on("load", function () {
                     console.log("loaded");
 
@@ -99,7 +111,6 @@
                         clusterMaxZoom: 20, // Max zoom to cluster points on
                         clusterRadius: 20, // Radius of each cluster when clustering points (defaults to 50)
                     });
-
 
                     _MapBox.addLayer({
                         id: "clusters",
@@ -140,6 +151,27 @@
                         }
                     });
 
+                    GetFuckwitsNearLocation(_UserLocation).features.forEach(function (marker) {
+
+                        var features = _MapBox.queryRenderedFeatures(MapPoint, { layers: ["clusters", "symbols"] });
+
+                        // create a HTML element for each feature
+                        var el = document.createElement('div');
+                        el.className = 'custom-marker-CHANGEME';
+
+
+                        // make a marker for each feature and add to the map
+                        new mapboxgl.Marker(el)
+                            .setLngLat(marker.geometry.coordinates)
+                            .addTo(_MapBox);
+
+                        el.addEventListener("click", function (e) {
+                            alert("custom click");
+                            e.stopPropagation(); // prevent any other things from firing
+                        });
+                    });
+
+                    /*
                     _MapBox.addLayer({
                         "id": "symbols",
                         "type": "symbol",
@@ -148,20 +180,23 @@
                         "layout": {
                             "icon-image": "marker-15",
                             "icon-size": 1,
-                            "icon-allow-overlap": true,
-                        }
-                    });
+                            "icon-allow-overlap": true
+                        },
+                    // doesn't do shit because lol whats backwards compatibility
+                        //paint: {
+                        //    "icon-color":"ff00ff"
+                        //}
+                    });*/
 
                     // User Location Tracking (geospatially, not analytics)
                     AddUserLocation(_MapBox);
-
 
                     _MapLoaded = true;
 
                 });
 
                 BindMouseEvents("clusters", { DesktopZoom: 20, MobileZoom: 18 });
-                BindMouseEvents("symbols", { DesktopZoom: 19, MobileZoom: 17 });
+                BindMouseEvents("symbols", { DesktopZoom: 19, MobileZoom: 17 }, ShowMarkerTooltip);
 
                 _MapBox.on("dragend", function (e) {
                     var mapcenter = _MapBox.getCenter();
@@ -171,6 +206,11 @@
 
                 var addmarker = debounce(function (geoloc) { AddFuckwitMarker(geoloc); }, 250);
 
+                /*
+                // This'll be after a user clicks another button, we've already got tapping a marker/cluster to zoom,
+                // having a click on a non-marker add a marker is a bit of a double handle and could cause problems
+
+
                 // Trigger the add marker
                 _MapBox.on("click", function (e) {
                     // because apparently there's no other way to differentiate between a map click and a layer click
@@ -179,7 +219,7 @@
                     }
                     //UpdateLocDebug(e.point, e.lngLat, _MapBox.getZoom(), e.position);
                  });
-
+                */
                 // Debug
                 _MapBox.on('mousemove', function (e) {
                     //updateLoc(e.point, e.lngLat, _MapBox.getZoom(), e.position);
@@ -199,23 +239,42 @@
                 }
             }
 
+            var tempFuckwit = null, markerTooltip = null;
+
             // Starts the marker adding process
             // will shrink the map down and open the form control or something.
             // would like to do it with as minimal javascript as possible.
             function AddFuckwitMarker(GeoObject) {
+
+                // remove the previously added fuckwit
+                if (tempFuckwit !== null) {
+                    tempFuckwit.remove();
+                }
+
+                var el = document.createElement('div');
+                el.className = 'custom-marker-CHANGEME';
+                el.innerText = "fuckwit";
+                tempFuckwit = new mapboxgl.Marker(el)
+                    .setLngLat([GeoObject.Longitude, GeoObject.Latitude])
+                    .addTo(_MapBox);
+
+                console.log(GeoObject);
                 document.getElementById("mapbox-container").classList.add("small-view");
                 setTimeout(function () {
                     _MapBox.resize();
-                console.log("adding fuckwit", GeoObject);
-                _MapBox.flyTo({ center: [GeoObject.Longitude, GeoObject.Latitude], zoom: 19 });
-                }, 310);
+                    console.log("adding fuckwit", GeoObject);
+                    _MapBox.flyTo({ center: [GeoObject.Longitude, GeoObject.Latitude]/*, zoom: 19*/ });
+                }, 250);
             }
 
-            function BindMouseEvents(LayerTarget, ZoomOptions) {
+            function BindMouseEvents(LayerTarget, ZoomOptions, ClickFunction) {
 
                 // auto zoom for layers
                 _MapBox.on('click', LayerTarget, function (e) {
                     console.log(LayerTarget + " click", e);
+                    if (ClickFunction !== undefined) {
+                        ClickFunction(e);
+                    }
                     _MapBox.flyTo({ center: e.features[0].geometry.coordinates, zoom: ZoomOptions.DesktopZoom });
                 });
 
@@ -235,6 +294,22 @@
                 });
             }
 
+            function ShowMarkerTooltip(e) {
+                console.log("TOOLTIP", e);
+                /*
+                // remove the previously added fuckwit
+                if (tempFuckwit !== null) {
+                    tempFuckwit.remove();
+                }
+
+                var el = document.createElement('div');
+                el.className = 'custom-marker-CHANGEME';
+                el.innerText = "fuckwit";
+                tempFuckwit = new mapboxgl.Marker(el)
+                    .setLngLat([GeoObject.Longitude, GeoObject.Latitude])
+                    .addTo(_MapBox);
+*/
+            }
 
             function debounce(func, wait, immediate) {
                 var timeout;
