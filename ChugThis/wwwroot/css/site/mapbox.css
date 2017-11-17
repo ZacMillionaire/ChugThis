@@ -11,9 +11,10 @@
     }
 
     #mapbox-container .custom-marker-CHANGEME {
-        width: 5px;
-        height: 5px;
-        background-color: #f0f;
+        width: 10px;
+        height: 10px;
+        border-radius: 10px;
+        cursor: pointer;
     }
 
 html {
