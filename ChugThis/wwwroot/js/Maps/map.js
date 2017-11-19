@@ -18,6 +18,60 @@
     var _Options = Options;
     var _TempFuckwitMarker = null;
     var _TouchDrag = false;
+    var _LoadedFuckwitMarkers = [];
+
+    // Define some time saving stuff later because I don't like
+    // having to write bullshit when I can just call a method
+    Object.defineProperties(Array.prototype,
+        {
+            "Contains": {
+                enumerable: false,
+                value: function (v) {
+                    return this.indexOf(v) !== -1;
+                }
+            },
+            "Add": {
+                enumerable: false,
+                value: function (v) {
+                    // If I use this somewhere else, I'll probably have to make sure that
+                    // added elements past the first, match the object type of the first index.
+                    // for now I'm just using it to store ints so I really don't care.
+                    if (this.indexOf(v) === -1) {
+                        this.push(v);
+                    }
+                }
+            },
+            "Remove": {
+                enumerable: false,
+                value: function (v) {
+                    var valueIndex = this.indexOf(v);
+                    if (valueIndex !== -1) {
+                        this.splice(valueIndex, 1);
+                    }
+                }
+            },
+            "Difference": {
+                enumerable: false,
+                value: function (NewSet) {
+                    // returns an array of elements that were not found in the new set
+                    // eg, they were unique to the old set
+                    var oldSet = this.Clone();
+                    for (var i in NewSet) {
+                        if (oldSet.Contains(NewSet[i])) {
+                            oldSet.Remove(NewSet[i]);
+                        }
+                    }
+                    return oldSet;
+                }
+            },
+            "Clone": {
+                enumerable: false,
+                value: function () {
+                    return JSON.parse(JSON.stringify(this));
+                }
+            }
+        }
+    );
 
     function ReturnCoordObject(Long, Lat) {
         return {
@@ -104,11 +158,18 @@
 
         console.log("Rendering fuckwits around", GeoLoc);
 
+        // remove all previously loaded markers
+        _LoadedFuckwitMarkers.forEach(function (marker) {
+            marker.remove();
+        });
+
+
         function MoveToFuckwitMarker(Event, Marker) {
             _MapBox.flyTo({ center: Marker.geometry.coordinates, zoom: _Options.Zoom.Desktop });
             Event.stopPropagation(); // prevent any other things from firing
         }
 
+        _LoadedFuckwitMarkers = [];
         GetFuckwitsNearLocation(GeoLoc).features.forEach(function (marker) {
             // create a HTML element for each feature
             var el = document.createElement('div');
@@ -116,7 +177,7 @@
             el.style.backgroundColor = marker.properties["fuckwit-color"];
 
             // make a marker for each feature and add to the map
-            new mapboxgl.Marker(el)
+            var m = new mapboxgl.Marker(el)
                 .setLngLat(marker.geometry.coordinates)
                 .addTo(MapBox);
 
@@ -124,10 +185,11 @@
                 MoveToFuckwitMarker(e, marker);
             });
             el.addEventListener("touchend", function (e) {
-                console.log
-                //MoveToFuckwitMarker(e, marker);
+                MoveToFuckwitMarker(e, marker);
                 //e.preventDefault();
-            })
+            });
+
+            _LoadedFuckwitMarkers.Add(m);
         });
     }
 
@@ -164,7 +226,8 @@
                 {
                     "type": "Feature",
                     "properties": {
-                        "fuckwit-color": "#f0f"
+                        "fuckwit-color": "#f0f",
+                        "fuckwit-id": 1
                     },
                     "geometry": {
                         "type": "Point",
@@ -177,7 +240,8 @@
                 {
                     "type": "Feature",
                     "properties": {
-                        "fuckwit-color": "#ff0"
+                        "fuckwit-color": "#ff0",
+                        "fuckwit-id": 2
                     },
                     "geometry": {
                         "type": "Point",
@@ -190,7 +254,8 @@
                 {
                     "type": "Feature",
                     "properties": {
-                        "fuckwit-color": "#3f5"
+                        "fuckwit-color": "#3f5",
+                        "fuckwit-id": 3
                     },
                     "geometry": {
                         "type": "Point",
@@ -203,7 +268,8 @@
                 {
                     "type": "Feature",
                     "properties": {
-                        "fuckwit-color": "#00f"
+                        "fuckwit-color": "#00f",
+                        "fuckwit-id": Math.floor(((Math.random() * 10)))
                     },
                     "geometry": {
                         "type": "Point",
