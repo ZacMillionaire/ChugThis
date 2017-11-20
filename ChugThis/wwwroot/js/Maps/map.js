@@ -125,11 +125,11 @@
 
         _MapBox.on("dragend", function (e) {
             var mapcenter = _MapBox.getCenter();
-            RenderFuckwits(ReturnCoordObject(mapcenter.lng, mapcenter.lat), _MapBox);
+            RenderFuckwits(ReturnCoordObject(mapcenter.lng, mapcenter.lat));
         });
         _MapBox.on("zoomend", function (e) {
             var mapcenter = _MapBox.getCenter();
-            RenderFuckwits(ReturnCoordObject(mapcenter.lng, mapcenter.lat), _MapBox);
+            RenderFuckwits(ReturnCoordObject(mapcenter.lng, mapcenter.lat));
         });
 
         // Trigger the add marker
@@ -154,7 +154,7 @@
 
     }
 
-    function RenderFuckwits(GeoLoc, MapBox) {
+    function RenderFuckwits(GeoLoc) {
 
         console.log("Rendering fuckwits around", GeoLoc);
 
@@ -165,7 +165,14 @@
 
 
         function MoveToFuckwitMarker(Event, Marker) {
-            _MapBox.flyTo({ center: Marker.geometry.coordinates, zoom: _Options.Zoom.Desktop });
+            Event.preventDefault();
+            var infobox = document.getElementById("info");
+            infobox.innerHTML = JSON.stringify(Marker);
+            try {
+                _MapBox.flyTo({ center: Marker.geometry.coordinates, zoom: _Options.Zoom.Desktop });
+            } catch (ex) {
+                infobox.innerHTML = ex;
+            }
             Event.stopPropagation(); // prevent any other things from firing
         }
 
@@ -179,15 +186,27 @@
             // make a marker for each feature and add to the map
             var m = new mapboxgl.Marker(el)
                 .setLngLat(marker.geometry.coordinates)
-                .addTo(MapBox);
+                .addTo(_MapBox);
 
             el.addEventListener("click", function (e) {
                 MoveToFuckwitMarker(e, marker);
             });
-            el.addEventListener("touchend", function (e) {
-                MoveToFuckwitMarker(e, marker);
-                //e.preventDefault();
+
+            el.addEventListener("touchstart", function (e) {
+                _TouchDrag = false;
             });
+            // Trigger the add marker for mobile
+            el.addEventListener("touchend", function (e) {
+                if (_TouchDrag === false) {
+                    MoveToFuckwitMarker(e, marker);
+                }
+            });
+
+            // disable tap events if a drag occurs (user is probably panning or pinch zooming, not tapping)
+            el.addEventListener("touchmove", function (e) {
+                _TouchDrag = true;
+            });
+
 
             _LoadedFuckwitMarkers.Add(m);
         });
