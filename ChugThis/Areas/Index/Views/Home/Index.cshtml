@@ -4,29 +4,138 @@
 <div id="mapbox-container">
 </div>
 <div id="info"></div>
+<div class="container is-small-screen-container" id="add-fuckwit">
+    <form action="~/Add/NewMarker" method="post">
+        <div class="field is-horizontal">
+            <div class="field-label is-normal">
+                <label class="label" for="CharityType-Select">Charity</label>
+            </div>
+            <div class="field-body">
+                <div class="field">
+                    <div class="control">
+                        <div class="select is-fullwidth">
+                            <select name="CharityType-Select">
+                                <option>--Not Listed--</option>
+                            </select>
+                        </div>
+                    </div>
+                    <a href="#" class="help is-pulled-right">Not listed?</a>
+                </div>
+            </div>
+        </div>
+        <div class="field is-horizontal">
+            <div class="field-label is-normal">
+                <label class="label" for="CharityType-Select">New Charity</label>
+            </div>
+            <div class="field-body">
+                <div class="field">
+                    <div class="control is-expanded">
+                        <input class="input" type="text" placeholder="Charity Name" id="CharityType-Input" />
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="field is-horizontal">
+            <div class="field-label">
+                <span class="label">How are they?</span>
+            </div>
+            <div class="field-body">
+                <div class="field">
+                    <div class="control">
+                        <div class="columns">
+                            <div class="column">
+                                <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
+                                    <span>
+                                        <span>
+                                            <input type="checkbox" name="Doing" value="obnoxious" />
+                                        </span>
+                                        <span>
+                                            Obnoxious
+                                        </span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="column">
+                                <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
+                                    <span>
+                                        <span>
+                                            <input type="checkbox" name="Doing" value="arrogant" />
+                                        </span>
+                                        <span>
+                                            Arrogant
+                                        </span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="column">
+                                <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
+                                    <span>
+                                        <span>
+                                            <input type="checkbox" name="Doing" value="pushy" />
+                                        </span>
+                                        <span>
+                                            Pushy
+                                        </span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="column">
+                                <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
+                                    <span>
+                                        <span>
+                                            <input type="checkbox" name="Doing" value="self-righteous" />
+                                        </span>
+                                        <span>
+                                            Self Righteous
+                                        </span>
+                                    </span>
+                                </label>
+                            </div>
+                            <div class="column">
+                                <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
+                                    <span>
+                                        <span>
+                                            <input type="checkbox" name="Doing" value="very-annoying" />
+                                        </span>
+                                        <span>
+                                            Being really fucking annoying
+                                        </span>
+                                    </span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                    <span class="help">Leave these unchecked if they were <em>not</em> annoying</span>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
 @section Scripts {
-    <script type="text/javascript" src="~/js/Maps/map.js"></script>
-    <script type="text/javascript">
-        if ("geolocation" in navigator) {
-            navigator.geolocation.getCurrentPosition(function (position) {
-                var cm = new ChugMap("@ViewData["MapBoxKey"]",
-                    {
-                        Container: 'mapbox-container',
-                        Zoom: {
-                            StartZoom: 16,
-                            Desktop: 19,
-                            Mobile: 18
+    @*
+        <script type="text/javascript" src="~/js/Maps/map.js" asp-append-version="true"></script>
+        <script type="text/javascript">
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(function (position) {
+                    var cm = new ChugMap("@ViewData["MapBoxKey"]",
+                        {
+                            Container: 'mapbox-container',
+                            Zoom: {
+                                StartZoom: 16,
+                                Desktop: 19,
+                                Mobile: 18
+                            }
                         }
-                    }
-                );
-                cm.RenderMap(position);
-            }, function (err) {
-                console.log(err); // I'd love to shove this into an XHR call to log the error later for mobile stuff.
-                // probably have it trigger a modal to let the user know as well.
-            });
-        } else {
-            alert("can't locate");
-            /* geolocation IS NOT available */
-        }
-    </script>
+                    );
+                    cm.RenderMap(position);
+                }, function (err) {
+                    console.log(err); // I'd love to shove this into an XHR call to log the error later for mobile stuff.
+                    // probably have it trigger a modal to let the user know as well.
+                });
+            } else {
+                alert("can't locate");
+                // geolocation IS NOT available
+            }
+        </script>
+    *@
 }
