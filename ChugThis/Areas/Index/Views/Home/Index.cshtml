@@ -1,120 +1,145 @@
-﻿<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.41.0/mapbox-gl.js'></script>
+﻿@{
+    PublicUser User = (PublicUser)ViewData["User"];
+}
+<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.41.0/mapbox-gl.js'></script>
 <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.41.0/mapbox-gl.css' rel='stylesheet' />
 <link href="~/css/site/mapbox.css" rel="stylesheet" />
 <div id="mapbox-container">
 </div>
 <div id="info"></div>
-<div class="container is-small-screen-container" id="add-fuckwit">
-    <form action="~/Add/NewMarker" method="post">
-        <div class="field is-horizontal">
-            <div class="field-label is-normal">
-                <label class="label" for="CharityType-Select">Charity</label>
+<div class="is-small-screen-container" id="add-fuckwit">
+    @if(!User.isLoggedIn) {
+        <div class="message is-warning">
+            <div class="message-header">
+                <p><i class="fa fa-warning"></i> Not Logged In</p>
+
             </div>
-            <div class="field-body">
-                <div class="field">
-                    <div class="control">
-                        <div class="select is-fullwidth">
-                            <select name="CharityType-Select">
-                                <option>--Not Listed--</option>
-                            </select>
-                        </div>
-                    </div>
-                    <a href="#" class="help is-pulled-right">Not listed?</a>
-                </div>
+            <div class="message-body">
+                You'll need to be logged in before you'll be able to add a new location.
             </div>
         </div>
-        <div class="field is-horizontal">
-            <div class="field-label is-normal">
-                <label class="label" for="CharityType-Select">New Charity</label>
-            </div>
-            <div class="field-body">
-                <div class="field">
-                    <div class="control is-expanded">
-                        <input class="input" type="text" placeholder="Charity Name" id="CharityType-Input" />
+    } else {
+        <div class="container" id="add-fuckwit">
+            <form action="~/Add/NewMarker" method="post" asp-antiforgery="true" enctype="application/x-www-form-urlencoded">
+                <div class="field is-horizontal">
+                    <div class="field-label is-normal">
+                        <label class="label">Location</label>
                     </div>
-                </div>
-            </div>
-        </div>
-        <div class="field is-horizontal">
-            <div class="field-label">
-                <span class="label">How are they?</span>
-            </div>
-            <div class="field-body">
-                <div class="field">
-                    <div class="control">
-                        <div class="columns">
-                            <div class="column">
-                                <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
-                                    <span>
-                                        <span>
-                                            <input type="checkbox" name="Doing" value="obnoxious" />
-                                        </span>
-                                        <span>
-                                            Obnoxious
-                                        </span>
-                                    </span>
-                                </label>
+                    <div class="field-body">
+                        <div class="field has-addons">
+                            <div class="control">
+                                <span class="button is-static">
+                                    <span>Pre-filled</span>
+                                </span>
                             </div>
-                            <div class="column">
-                                <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
-                                    <span>
-                                        <span>
-                                            <input type="checkbox" name="Doing" value="arrogant" />
-                                        </span>
-                                        <span>
-                                            Arrogant
-                                        </span>
-                                    </span>
-                                </label>
-                            </div>
-                            <div class="column">
-                                <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
-                                    <span>
-                                        <span>
-                                            <input type="checkbox" name="Doing" value="pushy" />
-                                        </span>
-                                        <span>
-                                            Pushy
-                                        </span>
-                                    </span>
-                                </label>
-                            </div>
-                            <div class="column">
-                                <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
-                                    <span>
-                                        <span>
-                                            <input type="checkbox" name="Doing" value="self-righteous" />
-                                        </span>
-                                        <span>
-                                            Self Righteous
-                                        </span>
-                                    </span>
-                                </label>
-                            </div>
-                            <div class="column">
-                                <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
-                                    <span>
-                                        <span>
-                                            <input type="checkbox" name="Doing" value="very-annoying" />
-                                        </span>
-                                        <span>
-                                            Being really fucking annoying
-                                        </span>
-                                    </span>
-                                </label>
+                            <div class="control is-expanded has-icons-left">
+                                <span class="icon is-normal">
+                                    <i class="fa fa-location-arrow"></i>
+                                </span>
+                                <input class="input is-static" type="text" placeholder="Charity Location" id="Location-Display" disabled />
+                                <input type="hidden" name="Location" id="Charity-Location" />
                             </div>
                         </div>
                     </div>
-                    <span class="help">Leave these unchecked if they were <em>not</em> annoying</span>
                 </div>
-            </div>
+                <div class="field is-horizontal">
+                    <div class="field-label is-normal">
+                        <label class="label" for="Charity-Name">Charity</label>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <div class="control is-expanded">
+                                <input class="input" type="text" name="Name" placeholder="Charity Name" id="Charity-Name" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="field is-horizontal">
+                    <div class="field-label">
+                        <span class="label">How are they?</span>
+                    </div>
+                    <div class="field-body">
+                        <div class="field">
+                            <div class="control">
+                                <div class="columns">
+                                    <div class="column">
+                                        <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
+                                            <span>
+                                                <span>
+                                                    <input type="checkbox" name="Doing" value="obnoxious" />
+                                                </span>
+                                                <span>
+                                                    Obnoxious
+                                                </span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                    <div class="column">
+                                        <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
+                                            <span>
+                                                <span>
+                                                    <input type="checkbox" name="Doing" value="arrogant" />
+                                                </span>
+                                                <span>
+                                                    Arrogant
+                                                </span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                    <div class="column">
+                                        <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
+                                            <span>
+                                                <span>
+                                                    <input type="checkbox" name="Doing" value="pushy" />
+                                                </span>
+                                                <span>
+                                                    Pushy
+                                                </span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                    <div class="column">
+                                        <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
+                                            <span>
+                                                <span>
+                                                    <input type="checkbox" name="Doing" value="self-righteous" />
+                                                </span>
+                                                <span>
+                                                    Self Righteous
+                                                </span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                    <div class="column">
+                                        <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
+                                            <span>
+                                                <span>
+                                                    <input type="checkbox" name="Doing" value="very-annoying" />
+                                                </span>
+                                                <span>
+                                                    Being really fucking annoying
+                                                </span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                            <span class="help">Leave these unchecked if they were <em>not</em> annoying</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="field has-addons has-addons-right">
+                    <div class="control">
+                        <button class="button is-link is-medium">Submit</button>
+                    </div>
+                </div>
+            </form>
         </div>
-    </form>
+    }
 </div>
 @section Scripts {
-    @*
-        <script type="text/javascript" src="~/js/Maps/map.js" asp-append-version="true"></script>
-        <script type="text/javascript">
+    <script type="text/javascript" src="~/js/Maps/map.js" asp-append-version="true"></script>
+    <script type="text/javascript">
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(function (position) {
                     var cm = new ChugMap("@ViewData["MapBoxKey"]",
@@ -124,7 +149,8 @@
                                 StartZoom: 16,
                                 Desktop: 19,
                                 Mobile: 18
-                            }
+                            },
+                            FormTarget: "#add-fuckwit"
                         }
                     );
                     cm.RenderMap(position);
@@ -136,6 +162,5 @@
                 alert("can't locate");
                 // geolocation IS NOT available
             }
-        </script>
-    *@
+    </script>
 }

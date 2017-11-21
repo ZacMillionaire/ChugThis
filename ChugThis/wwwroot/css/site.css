@@ -1,6 +1,10 @@
 ﻿/* Media query for small mobile screens (my iPhone SE specifically...) to ensure that target containers do get a padding */
 @media screen and (max-width: 1023px) and (min-width: 319px) {
-    .container.is-small-screen-container {
+    .is-small-screen-container {
         padding: 10px;
     }
+}
+
+.is-readonly {
+    user-select: none;
 }

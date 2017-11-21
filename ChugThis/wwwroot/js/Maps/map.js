@@ -8,7 +8,8 @@
                 StartZoom: 16,
                 Desktop: 19,
                 Mobile: 18
-            }
+            },
+            FormTarget: "#add-new-marker-form"
         };
     }
 
@@ -19,6 +20,7 @@
     var _TempFuckwitMarker = null;
     var _TouchDrag = false;
     var _LoadedFuckwitMarkers = [];
+    var _NewMarkerForm = document.querySelector(_Options.FormTarget);
 
     // Define some time saving stuff later because I don't like
     // having to write bullshit when I can just call a method
@@ -235,6 +237,15 @@
 
         console.log("adding fuckwit", GeoObject);
         _MapBox.flyTo({ center: [GeoObject.Longitude, GeoObject.Latitude], zoom: _Options.Zoom.Desktop });
+
+        ActivateAddMarkerForm(GeoObject);
+    }
+
+    function ActivateAddMarkerForm(Geolocation) {
+        var locationDisplay = _NewMarkerForm.querySelector("#Location-Display");
+        var locationField = _NewMarkerForm.querySelector("#Charity-Location");
+        locationDisplay.value = Geolocation.Longitude + " " + Geolocation.Latitude;
+        locationField.value = Geolocation.Longitude + " " + Geolocation.Latitude;
     }
 
     // TODO: Make this an API call
