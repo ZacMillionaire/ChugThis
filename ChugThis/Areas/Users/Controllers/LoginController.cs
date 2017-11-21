@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Nulah.ChugThis.Models.Users;
 using StackExchange.Redis;
 using Nulah.ChugThis.Models;
+using Nulah.ChugThis.Controllers.Users;
 
 namespace ChugThis.Areas.Users.Controllers {
     [Area("Users")]
@@ -50,6 +51,10 @@ namespace ChugThis.Areas.Users.Controllers {
             await signOut;
 
             if(signOut.IsCompleted) {
+
+                var userRedisKey = HttpContext.User.Claims.First(x => x.Type == "RedisKey").Value;
+
+                UserController.LogUserOut(userRedisKey, _redis);
                 // Blank the PublicUser profile so the view doesn't have lingering logged in side effects
                 ViewData["User"] = new PublicUser();
             }

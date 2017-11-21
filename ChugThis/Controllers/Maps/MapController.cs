@@ -1,4 +1,5 @@
 ﻿using Nulah.ChugThis.Models;
+using Nulah.ChugThis.Models.Users;
 using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
@@ -10,10 +11,14 @@ namespace Nulah.ChugThis.Controllers.Maps {
 
         private readonly IDatabase _redis;
         private readonly AppSettings _settings;
+        private readonly string _allMarkersKey;
+        private readonly string _baseMarkerKey = "Markers";
 
         public MapController(IDatabase Redis, AppSettings Settings) {
             _redis = Redis;
             _settings = Settings;
+            _baseMarkerKey = $"{_settings.ConnectionStrings.Redis.BaseKey}Markers";
+            _allMarkersKey = $"{_baseMarkerKey}:All";
         }
 
         /// <summary>
@@ -47,6 +52,19 @@ namespace Nulah.ChugThis.Controllers.Maps {
             var ApiHashKey = $"{Settings.ConnectionStrings.Redis.BaseKey}Keys";
             var MapBoxKey = Redis.HashGet(ApiHashKey, "MapBox");
             return MapBoxKey;
+        }
+
+        public void AddGeoMarkerToAll() {
+            throw new NotImplementedException();
+            //_redis.GeoAdd(_allMarkersKey)
+        }
+
+        public void AddGeoMarkerToSpecific() {
+            throw new NotImplementedException();
+        }
+
+        public void AddMarkerToUser(PublicUser User) {
+            throw new NotImplementedException();
         }
 
     }

@@ -38,6 +38,9 @@ namespace Nulah.ChugThis.Models {
         public string ClientName { get; set; }
         public bool AdminMode { get; set; }
         public string Password { get; set; }
+        /// <summary>
+        /// Will end with a semi-colon
+        /// </summary>
         public string BaseKey { get; set; }
         public int Database { get; set; }
     }
