@@ -109,7 +109,7 @@ namespace Nulah.ChugThis.Controllers.Maps {
                 Type = "Feature",
                 Properties = new MarkerProperties {
                     MarkerColour = charity.MarkerColour,
-                    CharityId = charity.Id
+                    MarkerId = charityMarker.Id
                 },
                 Geo = new Geometry {
                     LongLat = new double[] { MarkerData.Location.Longitude, MarkerData.Location.Latitude },
@@ -211,8 +211,8 @@ namespace Nulah.ChugThis.Controllers.Maps {
         /// </summary>
         [JsonProperty("Marker-Colour")]
         public string MarkerColour { get; set; }
-        [JsonProperty("Charity-Id")]
-        public long CharityId { get; set; }
+        [JsonProperty("Marker-Id")]
+        public long MarkerId { get; set; }
         // In future I'll probably want to expand this a bit for desktop users
         // so they can see a list of all markers with details in another div.
         // For now I'll just leave it as these 2 for marker interaction and
