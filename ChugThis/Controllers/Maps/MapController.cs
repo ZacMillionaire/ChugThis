@@ -1,4 +1,5 @@
 ﻿using Nulah.ChugThis.Models;
+using Nulah.ChugThis.Models.Maps;
 using Nulah.ChugThis.Models.Users;
 using StackExchange.Redis;
 using System;
@@ -54,7 +55,7 @@ namespace Nulah.ChugThis.Controllers.Maps {
             return MapBoxKey;
         }
 
-        public void AddGeoMarkerToAll() {
+        public void AddGeoMarkerToAll(NewCharityMarker MarkerData, PublicUser User) {
             throw new NotImplementedException();
             //_redis.GeoAdd(_allMarkersKey)
         }

@@ -53,8 +53,10 @@ namespace ChugThis.Areas.Users.Controllers {
             if(signOut.IsCompleted) {
 
                 var userRedisKey = HttpContext.User.Claims.First(x => x.Type == "RedisKey").Value;
+                var userController = new UserController(_redis, _settings);
 
-                UserController.LogUserOut(userRedisKey, _redis);
+                userController.LogUserOut(( (PublicUser)ViewData["User"] ).Id);
+
                 // Blank the PublicUser profile so the view doesn't have lingering logged in side effects
                 ViewData["User"] = new PublicUser();
             }

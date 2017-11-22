@@ -7,7 +7,7 @@
 <div id="mapbox-container">
 </div>
 <div id="info"></div>
-<div class="is-small-screen-container" id="add-fuckwit">
+<div class="is-small-screen-container is-hidden" id="add-new-marker-form">
     @if(!User.isLoggedIn) {
         <div class="message is-warning">
             <div class="message-header">
@@ -19,7 +19,7 @@
             </div>
         </div>
     } else {
-        <div class="container" id="add-fuckwit">
+        <div class="container">
             <form action="~/Add/NewMarker" method="post" asp-antiforgery="true" enctype="application/x-www-form-urlencoded">
                 <div class="field is-horizontal">
                     <div class="field-label is-normal">
@@ -117,7 +117,19 @@
                                                     <input type="checkbox" name="Doing" value="very-annoying" />
                                                 </span>
                                                 <span>
-                                                    Being really fucking annoying
+                                                    Being really annoying
+                                                </span>
+                                            </span>
+                                        </label>
+                                    </div>
+                                    <div class="column">
+                                        <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
+                                            <span>
+                                                <span>
+                                                    <input type="checkbox" name="Doing" value="undercover" />
+                                                </span>
+                                                <span>
+                                                    Plain clothes
                                                 </span>
                                             </span>
                                         </label>
@@ -146,11 +158,11 @@
                         {
                             Container: 'mapbox-container',
                             Zoom: {
-                                StartZoom: 16,
-                                Desktop: 19,
-                                Mobile: 18
+                                StartZoom: @User.Zoom.Starting,
+                                Desktop: @User.Zoom.Desktop,
+                                Mobile: @User.Zoom.Mobile
                             },
-                            FormTarget: "#add-fuckwit"
+                            FormTarget: "#add-new-marker-form"
                         }
                     );
                     cm.RenderMap(position);

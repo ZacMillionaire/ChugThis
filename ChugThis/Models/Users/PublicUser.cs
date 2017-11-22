@@ -1,4 +1,6 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using Nulah.ChugThis.Models.Maps;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,12 +12,16 @@ namespace Nulah.ChugThis.Models.Users {
         public string ProviderShort { get; set; }
         public string Name { get; set; }
 #pragma warning disable IDE1006 // Naming Styles
+        [JsonIgnore]
         public bool isLoggedIn { get; set; }
+        public bool isExpressMode { get; set; }
 #pragma warning restore IDE1006 // Naming Styles
         public DateTime LastSeenUTC { get; set; }
+        public ZoomOptions Zoom { get; set; }
 
         public PublicUser() {
             isLoggedIn = false;
+            Zoom = new ZoomOptions();
         }
     }
 }

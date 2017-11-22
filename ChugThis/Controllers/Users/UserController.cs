@@ -45,15 +45,15 @@ namespace Nulah.ChugThis.Controllers.Users {
             throw new KeyNotFoundException($"Unable to find PublicUser data at: {RedisKey}");
         }
 
-        internal static void LogUserOut(string RedisKey, IDatabase Redis) {
-            if(Redis.HashExists(RedisKey, USER_HASH_PROFILE)) {
-
-                // Get stored user from the cache, and update the last seen
-                PublicUser user = JsonConvert.DeserializeObject<PublicUser>(Redis.HashGet(RedisKey, USER_HASH_PROFILE));
-                user.isLoggedIn = false;
-
-                Redis.HashSet(RedisKey, USER_HASH_PROFILE, JsonConvert.SerializeObject(user));
-            }
+        /// <summary>
+        ///     <para>
+        /// Removes a given userId from the logged in set
+        ///     </para>
+        /// </summary>
+        /// <param name="RedisKey"></param>
+        /// <param name="Redis"></param>
+        public void LogUserOut(long UserId) {
+            //_redis.SetRemove()
         }
 
         /// <summary>
@@ -100,7 +100,6 @@ namespace Nulah.ChugThis.Controllers.Users {
             PublicUser user = GetUserFromCache(userKey);
 
             if(user != null) {
-                //user = JsonConvert.DeserializeObject<PublicUser>(_redis.HashGet(userKey, USER_HASH_PROFILE));
                 UpdateLastSeen(user);
             } else {
                 // Create a new user record
@@ -109,11 +108,11 @@ namespace Nulah.ChugThis.Controllers.Users {
                     LastSeenUTC = DateTime.UtcNow,
                     Name = UserData.Name,
                     Provider = UserData.Provider,
-                    ProviderShort = UserData.ProviderShort
+                    ProviderShort = UserData.ProviderShort,
+                    isExpressMode = false,
+                    Zoom = new Models.Maps.ZoomOptions() // Will have defaults set on creation
                 };
             }
-
-            user.isLoggedIn = true;
 
             // Add whatever data we have to the cache
             CreateOrUpdateCachedUser(user);
@@ -165,11 +164,6 @@ namespace Nulah.ChugThis.Controllers.Users {
             }
 
             return User;
-        }
-
-        public void LogUserOut(PublicUser User) {
-            User.isLoggedIn = false;
-
         }
     }
 }

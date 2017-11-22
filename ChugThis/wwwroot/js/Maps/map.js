@@ -17,9 +17,9 @@
     var _MapBoxApiKey = ApiKey;
     var _UserLocation = null;
     var _Options = Options;
-    var _TempFuckwitMarker = null;
+    var _TempCharityMarker = null;
     var _TouchDrag = false;
-    var _LoadedFuckwitMarkers = [];
+    var _LoadedCharityMarkers = [];
     var _NewMarkerForm = document.querySelector(_Options.FormTarget);
 
     // Define some time saving stuff later because I don't like
@@ -116,7 +116,7 @@
             console.log("loaded");
 
             // load the initial fuckwits around the users location
-            RenderFuckwits(_UserLocation, _MapBox);
+            RenderCharities(_UserLocation, _MapBox);
 
             // User Location Tracking (geospatially, not analytics)
             //AddUserLocation(_MapBox);
@@ -127,16 +127,16 @@
 
         _MapBox.on("dragend", function (e) {
             var mapcenter = _MapBox.getCenter();
-            RenderFuckwits(ReturnCoordObject(mapcenter.lng, mapcenter.lat));
+            RenderCharities(ReturnCoordObject(mapcenter.lng, mapcenter.lat));
         });
         _MapBox.on("zoomend", function (e) {
             var mapcenter = _MapBox.getCenter();
-            RenderFuckwits(ReturnCoordObject(mapcenter.lng, mapcenter.lat));
+            RenderCharities(ReturnCoordObject(mapcenter.lng, mapcenter.lat));
         });
 
         // Trigger the add marker
         _MapBox.on("click", function (e) {
-            AddFuckwitMarker(ReturnCoordObject(e.lngLat.lng, e.lngLat.lat), e.originalEvent);
+            AddCharityMarker(ReturnCoordObject(e.lngLat.lng, e.lngLat.lat), e.originalEvent);
         });
 
         _MapBox.on("touchstart", function (e) {
@@ -145,7 +145,7 @@
         // Trigger the add marker for mobile
         _MapBox.on("touchend", function (e) {
             if (_TouchDrag === false) {
-                AddFuckwitMarker(ReturnCoordObject(e.lngLat.lng, e.lngLat.lat), e.originalEvent);
+                AddCharityMarker(ReturnCoordObject(e.lngLat.lng, e.lngLat.lat), e.originalEvent);
             }
         });
 
@@ -156,34 +156,35 @@
 
     }
 
-    function RenderFuckwits(GeoLoc) {
+    function RenderCharities(GeoLoc) {
 
-        console.log("Rendering fuckwits around", GeoLoc);
+        console.log("Rendering Charities around", GeoLoc);
 
         // remove all previously loaded markers
-        _LoadedFuckwitMarkers.forEach(function (marker) {
+        _LoadedCharityMarkers.forEach(function (marker) {
             marker.remove();
         });
 
 
-        function MoveToFuckwitMarker(Event, Marker) {
+        function MoveToCharityMarker(Event, Marker) {
             Event.preventDefault();
-            var infobox = document.getElementById("info");
-            infobox.innerHTML = JSON.stringify(Marker);
+            //var infobox = document.getElementById("info");
+            //infobox.innerHTML = JSON.stringify(Marker);
             try {
                 _MapBox.flyTo({ center: Marker.geometry.coordinates, zoom: _Options.Zoom.Desktop });
             } catch (ex) {
-                infobox.innerHTML = ex;
+                console.log(ex);
+                //infobox.innerHTML = ex;
             }
-            Event.stopPropagation(); // prevent any other things from firing
+            //Event.stopPropagation(); // prevent any other things from firing
         }
 
-        _LoadedFuckwitMarkers = [];
-        GetFuckwitsNearLocation(GeoLoc).features.forEach(function (marker) {
+        _LoadedCharityMarkers = [];
+        GetCharitiesNearLocation(GeoLoc).features.forEach(function (marker) {
             // create a HTML element for each feature
             var el = document.createElement('div');
             el.className = 'custom-marker-CHANGEME';
-            el.style.backgroundColor = marker.properties["fuckwit-color"];
+            el.style.backgroundColor = marker.properties["Marker-Colour"];
 
             // make a marker for each feature and add to the map
             var m = new mapboxgl.Marker(el)
@@ -191,7 +192,7 @@
                 .addTo(_MapBox);
 
             el.addEventListener("click", function (e) {
-                MoveToFuckwitMarker(e, marker);
+                MoveToCharityMarker(e, marker);
             });
 
             el.addEventListener("touchstart", function (e) {
@@ -200,7 +201,7 @@
             // Trigger the add marker for mobile
             el.addEventListener("touchend", function (e) {
                 if (_TouchDrag === false) {
-                    MoveToFuckwitMarker(e, marker);
+                    MoveToCharityMarker(e, marker);
                 }
             });
 
@@ -210,11 +211,11 @@
             });
 
 
-            _LoadedFuckwitMarkers.Add(m);
+            _LoadedCharityMarkers.Add(m);
         });
     }
 
-    function AddFuckwitMarker(GeoObject, OriginalEvent) {
+    function AddCharityMarker(GeoObject, OriginalEvent) {
 
         // Do nothing if the event came from anything other than the map canvas (eg the user clicked on the marker they already placed)
         if (OriginalEvent.target.tagName !== "CANVAS") {
@@ -222,26 +223,27 @@
         }
 
         // remove the previously added fuckwit
-        if (_TempFuckwitMarker !== null) {
-            _TempFuckwitMarker.remove();
+        if (_TempCharityMarker !== null) {
+            _TempCharityMarker.remove();
         }
 
         var el = document.createElement('div');
         el.className = 'add-marker-CHANGEME';
-        el.innerText = "fuckwit";
+        el.innerText = "Charity";
         el.style.backgroundColor = "#006633";
 
-        _TempFuckwitMarker = new mapboxgl.Marker(el)
+        _TempCharityMarker = new mapboxgl.Marker(el)
             .setLngLat([GeoObject.Longitude, GeoObject.Latitude])
             .addTo(_MapBox);
 
-        console.log("adding fuckwit", GeoObject);
+        console.log("adding Charity", GeoObject);
         _MapBox.flyTo({ center: [GeoObject.Longitude, GeoObject.Latitude], zoom: _Options.Zoom.Desktop });
 
         ActivateAddMarkerForm(GeoObject);
     }
 
     function ActivateAddMarkerForm(Geolocation) {
+        _NewMarkerForm.classList.remove("is-hidden");
         var locationDisplay = _NewMarkerForm.querySelector("#Location-Display");
         var locationField = _NewMarkerForm.querySelector("#Charity-Location");
         locationDisplay.value = Geolocation.Longitude + " " + Geolocation.Latitude;
@@ -249,15 +251,15 @@
     }
 
     // TODO: Make this an API call
-    function GetFuckwitsNearLocation(CenterPoint) {
+    function GetCharitiesNearLocation(CenterPoint) {
         return {
             "type": "FeatureCollection",
             "features": [
                 {
                     "type": "Feature",
                     "properties": {
-                        "fuckwit-color": "#f0f",
-                        "fuckwit-id": 1
+                        "Marker-Colour": "#f0f",
+                        "Marker-Id": 1
                     },
                     "geometry": {
                         "type": "Point",
@@ -270,8 +272,8 @@
                 {
                     "type": "Feature",
                     "properties": {
-                        "fuckwit-color": "#ff0",
-                        "fuckwit-id": 2
+                        "Marker-Colour": "#ff0",
+                        "Marker-Id": 2
                     },
                     "geometry": {
                         "type": "Point",
@@ -284,8 +286,8 @@
                 {
                     "type": "Feature",
                     "properties": {
-                        "fuckwit-color": "#3f5",
-                        "fuckwit-id": 3
+                        "Marker-Colour": "#3f5",
+                        "Marker-Id": 3
                     },
                     "geometry": {
                         "type": "Point",
@@ -298,8 +300,8 @@
                 {
                     "type": "Feature",
                     "properties": {
-                        "fuckwit-color": "#00f",
-                        "fuckwit-id": Math.floor(((Math.random() * 10)))
+                        "Marker-Colour": "#00f",
+                        "Marker-Id": Math.floor(((Math.random() * 10)))
                     },
                     "geometry": {
                         "type": "Point",
