@@ -23,5 +23,15 @@ namespace Nulah.ChugThis.Models.Users {
             isLoggedIn = false;
             Zoom = new ZoomOptions();
         }
+
+        /// <summary>
+        ///     <para>
+        /// Returns the users Redis Id: {ProviderShort}-{Id}
+        ///     </para>
+        /// </summary>
+        /// <returns></returns>
+        public string GetUserId() {
+            return $"{ProviderShort}-{Id}";
+        }
     }
 }

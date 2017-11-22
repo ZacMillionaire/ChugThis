@@ -11,16 +11,13 @@ namespace Nulah.ChugThis.Controllers.Users {
     public class UserController {
         private readonly IDatabase _redis;
         private readonly AppSettings _settings;
-        /// <summary>
-        /// Will end with a colon
-        /// </summary>
         private readonly string _userKey;
         private const string USER_HASH_PROFILE = "Profile";
 
         public UserController(IDatabase Redis, AppSettings Settings) {
             _redis = Redis;
             _settings = Settings;
-            _userKey = $"{Settings.ConnectionStrings.Redis.BaseKey}Users:";
+            _userKey = $"{Settings.ConnectionStrings.Redis.BaseKey}Users";
         }
 
         /// <summary>
@@ -68,7 +65,7 @@ namespace Nulah.ChugThis.Controllers.Users {
         /// <param name="Provider"></param>
         /// <returns></returns>
         public string GetUserTableKey(User UserData) {
-            return $"{_userKey}{UserData.ProviderShort}-{UserData.Id}";
+            return $"{_userKey}:{UserData.ProviderShort}-{UserData.Id}";
         }
 
         /// <summary>
@@ -84,7 +81,7 @@ namespace Nulah.ChugThis.Controllers.Users {
         /// <param name="Provider"></param>
         /// <returns></returns>
         public string GetUserTableKey(PublicUser UserData) {
-            return $"{_userKey}{UserData.ProviderShort}-{UserData.Id}";
+            return $"{_userKey}:{UserData.ProviderShort}-{UserData.Id}";
         }
 
         /// <summary>
@@ -118,6 +115,37 @@ namespace Nulah.ChugThis.Controllers.Users {
             CreateOrUpdateCachedUser(user);
 
             return user;
+        }
+
+        /// <summary>
+        ///     <para>
+        /// Adds a new markerId to a users marker list.
+        ///     </para>
+        ///     <para>
+        /// If the marker has already been added nothing will happen. Creates a new set if one does not exist.
+        ///     </para>
+        /// </summary>
+        /// <param name="CharityName"></param>
+        /// <param name="MarkerId"></param>
+        public void AddMarkerToUser(string UserId, long MarkerId) {
+
+            var userMarkerHash = $"{_userKey}:{UserId}";
+            List<long> MarkerSet;
+
+            // check to see if the hash exists
+            if(_redis.HashExists(userMarkerHash, "Markers")) {
+                // deserialize the existing set
+                MarkerSet = JsonConvert.DeserializeObject<List<long>>(_redis.HashGet(userMarkerHash, "Markers"));
+                // if the set doesn't contain the MarkerId, add it
+                if(!MarkerSet.Contains(MarkerId)) {
+                    MarkerSet.Add(MarkerId);
+                }
+            } else {
+                // Create a new marker set from the MarkerId
+                MarkerSet = new List<long> { MarkerId };
+            }
+            // add the marker set to the hash
+            _redis.HashSet(userMarkerHash, "Markers", JsonConvert.SerializeObject(MarkerSet));
         }
 
         private PublicUser GetUserFromCache(string UserKey) {

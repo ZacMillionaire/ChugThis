@@ -22,14 +22,21 @@ namespace Nulah.ChugThis.Controllers.Maps {
             _settings = Settings;
         }
 
-
         [HttpPost]
         [Route("~/Add/NewMarker")]
         [ValidateAntiForgeryToken]
-        public void AddNewCharityMarker([FromForm]NewCharityMarker FormData) {
+        public PublicCharityMarker AddNewCharityMarker([FromForm]NewCharityMarker FormData) {
             var user = (PublicUser)ViewData["User"];
             var map = new MapController(_redis, _settings);
-            map.AddGeoMarkerToAll(FormData, user);
+            var addedMarker = map.NewGeoMarker(FormData, user);
+            return addedMarker;
+        }
+
+        [HttpGet]
+        [Route("~/Api/GetMarkers")]
+        public PublicCharityMarker[] GetMarkersNearPoint(double Longitude, double Latitude) {
+            //var map = new MapController(_redis, _settings);
+            throw new NotImplementedException();
         }
     }
 }

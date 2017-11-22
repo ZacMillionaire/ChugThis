@@ -8,10 +8,19 @@ using System.Threading.Tasks;
 
 namespace Nulah.ChugThis.Models.Maps {
 
+    /// <summary>
+    /// For form data
+    /// </summary>
     [ModelBinder(BinderType = typeof(NewCharityEntityBinder))]
     public class NewCharityMarker {
         public GeoLocation Location { get; set; }
+        /// <summary>
+        /// Name of the charity
+        /// </summary>
         public string Name { get; set; }
+        /// <summary>
+        /// What they were doing
+        /// </summary>
         public string[] Doing { get; set; }
     }
 
