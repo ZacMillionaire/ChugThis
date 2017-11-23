@@ -9,6 +9,10 @@
                 Desktop: 19,
                 Mobile: 18
             },
+            MarkerSize: {
+                Add: 25,
+                CharityBase: 20
+            },
             FormTarget: "#add-new-marker-form"
         };
     }
@@ -248,6 +252,10 @@
                 var el = document.createElement('div');
                 el.className = 'custom-marker-CHANGEME';
                 el.style.backgroundColor = "#" + marker.properties["Marker-Colour"];
+                el.style.width = (_Options.MarkerSize.CharityBase * marker.properties["Marker-Size"]) + "px";
+                el.style.height = (_Options.MarkerSize.CharityBase * marker.properties["Marker-Size"]) + "px";
+                el.style.borderRadius = (_Options.MarkerSize.CharityBase * marker.properties["Marker-Size"]) + "px";
+                el.style.opacity = (marker.properties["Marker-Opacity"]);
 
                 // make a marker for each feature and add to the map
                 var m = new mapboxgl.Marker(el)

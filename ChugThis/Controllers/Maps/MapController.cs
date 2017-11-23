@@ -109,7 +109,9 @@ namespace Nulah.ChugThis.Controllers.Maps {
                 Type = "Feature",
                 Properties = new MarkerProperties {
                     MarkerColour = charity.MarkerColour,
-                    MarkerId = charityMarker.Id
+                    MarkerId = charityMarker.Id,
+                    Opacity = 1.0,
+                    Size = 1.0
                 },
                 Geo = new Geometry {
                     LongLat = new double[] { charityMarker.Location.Longitude, charityMarker.Location.Latitude },
@@ -118,20 +120,129 @@ namespace Nulah.ChugThis.Controllers.Maps {
             };
         }
 
-
+        /// <summary>
+        ///     <para>
+        /// Returns a class ready for GeoJson, returning markers a radius around a given GeoLocation.
+        ///     </para>
+        ///     <para>
+        /// Returned markers will be sized based on steps from current hour, back to 3 hours ago, from 1.0, 0.75, 0.5; opacity will be 1 for all.
+        ///     </para>
+        /// </summary>
+        /// <param name="geoLocation"></param>
+        /// <param name="Radius"></param>
+        /// <returns></returns>
         public FeatureCollection GetMarkersNearPoint(GeoLocation geoLocation, double Radius) {
+            return GetMarkers(geoLocation, Radius, false);
+        }
+
+        /// <summary>
+        ///     <para>
+        /// Returns a class ready for GeoJson, returning markers a radius around a given GeoLocation.
+        ///     </para>
+        ///     <para>
+        /// Returned markers will be sized based on steps from current hour, back to 3 hours ago, from 1.0, 0.75, 0.5; opacity will be 1 for all.
+        ///     </para>
+        ///     <para>
+        /// Total number of markers returned will be controlled by MarkerCap
+        ///     </para>
+        /// </summary>
+        /// <param name="geoLocation"></param>
+        /// <param name="Radius"></param>
+        /// <param name="MarkerCap"></param>
+        /// <returns></returns>
+        public FeatureCollection GetMarkersNearPoint(GeoLocation geoLocation, double Radius, int MarkerCap) {
+            return GetMarkers(geoLocation, Radius, false, MarkerCap);
+        }
+
+        /// <summary>
+        ///     <para>
+        /// Returns a class ready for GeoJson, returning markers a radius around a given GeoLocation.
+        ///     </para>
+        ///     <para>
+        /// Returned markers will be sized based on steps from current hour, back to 3 hours ago, from 1.0, 0.75, 0.5; opacity will be 1 for all.
+        ///     </para>
+        /// </summary>
+        /// <param name="geoLocation"></param>
+        /// <param name="Radius"></param>
+        /// <param name="ShowHistoric"></param>
+        /// <returns></returns>
+        public FeatureCollection GetMarkersNearPoint(GeoLocation geoLocation, double Radius, bool ShowHistoric) {
+            return GetMarkers(geoLocation, Radius, ShowHistoric);
+        }
+
+        /// <summary>
+        ///     <para>
+        /// Returns a class ready for GeoJson, returning markers a radius around a given GeoLocation.
+        ///     </para>
+        ///     <para>
+        /// If ShowHistoric is true, then return all markers ever made, at a size of 0.5 (50% of their base size), with an opacity of 1. If left as default,
+        /// markers will be filtered based on hour steps from up to 3 hours old. Markers older than 3 hours will be half size and half opacity
+        ///     </para>
+        ///     <para>
+        /// The number of markers is controlled by MarkerCap, and markers are ordered by distance from target before capping.
+        ///     </para>
+        /// </summary>
+        /// <param name="geoLocation"></param>
+        /// <param name="Radius"></param>
+        /// <param name="ShowHistoric">Defaults to false</param>
+        /// <param name="MarkerCap">Defaults to 100. The total number of markers to return.</param>
+        /// <returns></returns>
+        private FeatureCollection GetMarkers(GeoLocation geoLocation, double Radius, bool ShowHistoric = false, int MarkerCap = 100) {
             // Select all points in a radius around a location
-            var Around = _redis.GeoRadius(_allMarkersKey, geoLocation.Longitude, geoLocation.Latitude, Radius, GeoUnit.Meters);
+            var Around = _redis.GeoRadius(_allMarkersKey, geoLocation.Longitude, geoLocation.Latitude, Radius, GeoUnit.Meters)
+                .OrderBy(x => x.Distance)
+                .Take(MarkerCap);
+
             // Get the marker Ids (later I'll probably want their distance values, but for now this is all I'm interested in.
             var MarkerIds = Around.Select(x => (double)x.Member)
                 .ToArray();
 
-            var markerDetails = _redis.HashGet(_entriesMarkersKey, Array.ConvertAll(MarkerIds, item => (RedisValue)item))
-                .Select(x => JsonConvert.DeserializeObject<CharityMarker>(x).ToGeoJsonFeature());
+            List<Feature> featureMarkers = new List<Feature>();
+            if(ShowHistoric == false) {
+                // snapshot the time the request was made
+                var utcNow = DateTime.UtcNow;
+                var threeHoursAgo = utcNow.AddHours(-3);
+
+                var markers = _redis.HashGet(_entriesMarkersKey, Array.ConvertAll(MarkerIds, item => (RedisValue)item))
+                    .Select(x => JsonConvert.DeserializeObject<CharityMarker>(x));
+                //.Where(x => x.TimestampUTC > threeHoursAgo); // Filter out any markers that are older than 3 hours ago
+
+                foreach(var marker in markers) {
+                    Feature f = marker.ToGeoJsonFeature();
+                    var timeSince = marker.TimestampUTC - threeHoursAgo;
+                    // this is awkward counting the reverse but uh...
+                    // I'll get angry about this later when it bites me in the ass
+                    if(timeSince.Hours == 2) {
+                        // same hour
+                        f.Properties.Size = 1.1;
+                    } else if(timeSince.Hours == 1) {
+                        // 1 hour ago
+                        f.Properties.Size = 0.85;
+                    } else if(timeSince.Hours == 0) {
+                        // 2 hours
+                        f.Properties.Size = 0.75;
+                        f.Properties.Opacity = 0.75;
+                    } else {
+                        // more than 3 (negative timeSince)
+                        f.Properties.Size = 0.5;
+                        f.Properties.Opacity = 0.5;
+                    }
+                    featureMarkers.Add(f);
+                }
+            } else {
+                var markers = _redis.HashGet(_entriesMarkersKey, Array.ConvertAll(MarkerIds, item => (RedisValue)item))
+                    .Select(x => JsonConvert.DeserializeObject<CharityMarker>(x)); // Filter out any markers that are older than 3 hours ago
+
+                foreach(var marker in markers) {
+                    Feature f = marker.ToGeoJsonFeature();
+                    f.Properties.Size = 0.25;
+                    featureMarkers.Add(f);
+                }
+            }
 
             return new FeatureCollection {
                 Type = "FeatureCollection",
-                Features = markerDetails.ToArray()
+                Features = featureMarkers.ToArray()
             };
         }
 
@@ -213,7 +324,9 @@ namespace Nulah.ChugThis.Controllers.Maps {
                 Type = "Feature",
                 Properties = new MarkerProperties {
                     MarkerColour = MarkerColour,
-                    MarkerId = Id
+                    MarkerId = Id,
+                    Opacity = 1.0,
+                    Size = 1.0
                 },
                 Geo = new Geometry {
                     LongLat = new double[] { Location.Longitude, Location.Latitude },
@@ -248,6 +361,13 @@ namespace Nulah.ChugThis.Controllers.Maps {
         public string MarkerColour { get; set; }
         [JsonProperty("Marker-Id")]
         public long MarkerId { get; set; }
+        [JsonProperty("Marker-Opacity")]
+        public double Opacity { get; set; }
+        /// <summary>
+        /// Multiplier, 0.0 - 1.0
+        /// </summary>
+        [JsonProperty("Marker-Size")]
+        public double Size { get; set; }
         // In future I'll probably want to expand this a bit for desktop users
         // so they can see a list of all markers with details in another div.
         // For now I'll just leave it as these 2 for marker interaction and

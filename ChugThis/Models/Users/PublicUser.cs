@@ -18,10 +18,11 @@ namespace Nulah.ChugThis.Models.Users {
 #pragma warning restore IDE1006 // Naming Styles
         public DateTime LastSeenUTC { get; set; }
         public ZoomOptions Zoom { get; set; }
-
+        public MarkerOptions Marker { get; set; }
         public PublicUser() {
             isLoggedIn = false;
             Zoom = new ZoomOptions();
+            Marker = new MarkerOptions();
         }
 
         /// <summary>
