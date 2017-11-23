@@ -1,9 +1,9 @@
 {
     "Major":  0,
-    "Minor":  0,
+    "Minor":  1,
     "Patch":  0,
     "Environment":  "Development",
-    "Build":  114,
-    "BuildTime":  "22-11-2017",
-    "VersionString":  "0.0.0-Development.114+22-11-2017"
+    "Build":  123,
+    "BuildTime":  "23-11-2017",
+    "VersionString":  "0.0.0-Development.123+23-11-2017"
 }

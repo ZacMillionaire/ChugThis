@@ -83,7 +83,7 @@ namespace Nulah.ChugThis.Controllers.Maps {
             return _redis.StringIncrement(markerKey);
         }
 
-        public PublicCharityMarker NewGeoMarker(NewCharityMarker MarkerData, PublicUser User) {
+        public Feature NewGeoMarker(NewCharityMarker MarkerData, PublicUser User) {
             var charityController = new CharityController(_redis, _settings);
             var userController = new UserController(_redis, _settings);
 
@@ -105,18 +105,36 @@ namespace Nulah.ChugThis.Controllers.Maps {
             charityController.AddMarkerToCharity(charity.Name, charityMarker.Id);
             userController.AddMarkerToUser(User.GetUserId(), charityMarker.Id);
 
-            return new PublicCharityMarker {
+            return new Feature {
                 Type = "Feature",
                 Properties = new MarkerProperties {
                     MarkerColour = charity.MarkerColour,
                     MarkerId = charityMarker.Id
                 },
                 Geo = new Geometry {
-                    LongLat = new double[] { MarkerData.Location.Longitude, MarkerData.Location.Latitude },
+                    LongLat = new double[] { charityMarker.Location.Longitude, charityMarker.Location.Latitude },
                     Type = "Point"
                 }
             };
         }
+
+
+        public FeatureCollection GetMarkersNearPoint(GeoLocation geoLocation, double Radius) {
+            // Select all points in a radius around a location
+            var Around = _redis.GeoRadius(_allMarkersKey, geoLocation.Longitude, geoLocation.Latitude, Radius, GeoUnit.Meters);
+            // Get the marker Ids (later I'll probably want their distance values, but for now this is all I'm interested in.
+            var MarkerIds = Around.Select(x => (double)x.Member)
+                .ToArray();
+
+            var markerDetails = _redis.HashGet(_entriesMarkersKey, Array.ConvertAll(MarkerIds, item => (RedisValue)item))
+                .Select(x => JsonConvert.DeserializeObject<CharityMarker>(x).ToGeoJsonFeature());
+
+            return new FeatureCollection {
+                Type = "FeatureCollection",
+                Features = markerDetails.ToArray()
+            };
+        }
+
 
         /// <summary>
         ///     <para>
@@ -159,6 +177,9 @@ namespace Nulah.ChugThis.Controllers.Maps {
 
     // TODO: move this shit to seperate classes
     public class CharityMarker {
+        /// <summary>
+        /// Marker Id
+        /// </summary>
         public long Id { get; set; }
         public long CharityId { get; set; }
         /// <summary>
@@ -186,6 +207,20 @@ namespace Nulah.ChugThis.Controllers.Maps {
         public override string ToString() {
             return JsonConvert.SerializeObject(this);
         }
+
+        public Feature ToGeoJsonFeature() {
+            return new Feature {
+                Type = "Feature",
+                Properties = new MarkerProperties {
+                    MarkerColour = MarkerColour,
+                    MarkerId = Id
+                },
+                Geo = new Geometry {
+                    LongLat = new double[] { Location.Longitude, Location.Latitude },
+                    Type = "Point"
+                }
+            };
+        }
     }
 
     /// <summary>
@@ -196,7 +231,7 @@ namespace Nulah.ChugThis.Controllers.Maps {
     // I should probably just change this to be a generic feature class for GeoJson as well...
     // ...
     // Eh, later
-    public class PublicCharityMarker {
+    public class Feature {
         [JsonProperty("type")]
         public string Type { get; set; }
         [JsonProperty("properties")]
@@ -233,5 +268,10 @@ namespace Nulah.ChugThis.Controllers.Maps {
         [JsonProperty("coordinates")]
         public double[] LongLat { get; set; }
     }
-
+    public class FeatureCollection {
+        [JsonProperty("type")]
+        public string Type { get; set; }
+        [JsonProperty("features")]
+        public Feature[] Features { get; set; }
+    }
 }

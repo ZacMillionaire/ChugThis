@@ -21,6 +21,8 @@
     var _TouchDrag = false;
     var _LoadedCharityMarkers = [];
     var _NewMarkerForm = document.querySelector(_Options.FormTarget);
+    var _Scale = null;
+    //    var _MapBox = null;
 
     // Define some time saving stuff later because I don't like
     // having to write bullshit when I can just call a method
@@ -115,6 +117,8 @@
         _MapBox.on("load", function () {
             console.log("loaded");
 
+            console.log(_MapBox);
+
             // load the initial fuckwits around the users location
             RenderCharities(_UserLocation, _MapBox);
 
@@ -158,12 +162,59 @@
 
     function RenderCharities(GeoLoc) {
 
-        console.log("Rendering Charities around", GeoLoc);
+        var bbox = _MapBox.getContainer().getBoundingClientRect();
+        var width = bbox.width;
+        var height = bbox.height;
 
-        // remove all previously loaded markers
-        _LoadedCharityMarkers.forEach(function (marker) {
-            marker.remove();
-        });
+        var topLeft = _MapBox.unproject([0, 0]);
+        var bottomRight = _MapBox.unproject([width, height]);
+        /*
+        debug markers
+        var el1 = document.createElement('div');
+        el1.className = 'add-marker-CHANGEME';
+        el1.innerText = "tl";
+        el1.style.backgroundColor = "#f00";
+
+        new mapboxgl.Marker(el1)
+            .setLngLat(topLeft)
+            .addTo(_MapBox);
+
+        var el2 = document.createElement('div');
+        el2.className = 'add-marker-CHANGEME';
+        el2.innerText = "br";
+        el2.style.backgroundColor = "#0f0";
+
+        new mapboxgl.Marker(el2)
+            .setLngLat(bottomRight)
+            .addTo(_MapBox);*/
+
+        var diagonalDistance = calcCrow(topLeft.lat, topLeft.lng, bottomRight.lat, bottomRight.lng);
+        //console.log("diagonal dist", diagonalDistance + "m");
+
+        // Shamelessly stolen from SnackOverflow until I have time to rewrite it
+        // https://stackoverflow.com/questions/18883601/function-to-calculate-distance-between-two-coordinates-shows-wrong
+        //This function takes in latitude and longitude of two location and returns the distance between them as the crow flies (in km * 1000 (meters))
+        function calcCrow(lat1, lon1, lat2, lon2) {
+            var R = 6371; // km
+            var dLat = toRad(lat2 - lat1);
+            var dLon = toRad(lon2 - lon1);
+            var lat1 = toRad(lat1);
+            var lat2 = toRad(lat2);
+
+            var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+            var d = R * c;
+            return d * 1000;
+        }
+
+        // Converts numeric degrees to radians
+        function toRad(Value) {
+            return Value * Math.PI / 180;
+        }
+
+
+        console.log("Rendering Charities around", GeoLoc, "with radius", (diagonalDistance / 4) + "m");
 
 
         function MoveToCharityMarker(Event, Marker) {
@@ -179,40 +230,54 @@
             //Event.stopPropagation(); // prevent any other things from firing
         }
 
-        _LoadedCharityMarkers = [];
-        GetCharitiesNearLocation(GeoLoc).features.forEach(function (marker) {
-            // create a HTML element for each feature
-            var el = document.createElement('div');
-            el.className = 'custom-marker-CHANGEME';
-            el.style.backgroundColor = marker.properties["Marker-Colour"];
 
-            // make a marker for each feature and add to the map
-            var m = new mapboxgl.Marker(el)
-                .setLngLat(marker.geometry.coordinates)
-                .addTo(_MapBox);
 
-            el.addEventListener("click", function (e) {
-                MoveToCharityMarker(e, marker);
+        GetCharitiesNearLocation(GeoLoc, diagonalDistance).then(function (GeoJsonResult) {
+
+            console.log("Promise complete", GeoJsonResult);
+
+            // remove all previously loaded markers once new data has loaded
+            _LoadedCharityMarkers.forEach(function (marker) {
+                marker.remove();
             });
 
-            el.addEventListener("touchstart", function (e) {
-                _TouchDrag = false;
-            });
-            // Trigger the add marker for mobile
-            el.addEventListener("touchend", function (e) {
-                if (_TouchDrag === false) {
+            _LoadedCharityMarkers = [];
+
+            GeoJsonResult.features.forEach(function (marker) {
+                // create a HTML element for each feature
+                var el = document.createElement('div');
+                el.className = 'custom-marker-CHANGEME';
+                el.style.backgroundColor = "#" + marker.properties["Marker-Colour"];
+
+                // make a marker for each feature and add to the map
+                var m = new mapboxgl.Marker(el)
+                    .setLngLat(marker.geometry.coordinates)
+                    .addTo(_MapBox);
+
+                el.addEventListener("click", function (e) {
                     MoveToCharityMarker(e, marker);
-                }
+                });
+
+                el.addEventListener("touchstart", function (e) {
+                    _TouchDrag = false;
+                });
+                // Trigger the add marker for mobile
+                el.addEventListener("touchend", function (e) {
+                    if (_TouchDrag === false) {
+                        MoveToCharityMarker(e, marker);
+                    }
+                });
+
+                // disable tap events if a drag occurs (user is probably panning or pinch zooming, not tapping)
+                el.addEventListener("touchmove", function (e) {
+                    _TouchDrag = true;
+                });
+
+
+                _LoadedCharityMarkers.Add(m);
             });
-
-            // disable tap events if a drag occurs (user is probably panning or pinch zooming, not tapping)
-            el.addEventListener("touchmove", function (e) {
-                _TouchDrag = true;
-            });
-
-
-            _LoadedCharityMarkers.Add(m);
         });
+
     }
 
     function AddCharityMarker(GeoObject, OriginalEvent) {
@@ -251,7 +316,27 @@
     }
 
     // TODO: Make this an API call
-    function GetCharitiesNearLocation(CenterPoint) {
+    function GetCharitiesNearLocation(CenterPoint, Radius) {
+        return new Promise(function (resolve, reject) {
+            var oReq = new XMLHttpRequest();
+
+            oReq.onreadystatechange = function () {
+                if (oReq.readyState === 4) {
+                    //console.log("---");
+                    //console.log("Request done", JSON.parse(oReq.response));
+                    //console.log("---");
+
+                    resolve(JSON.parse(oReq.response));
+                }
+            }
+
+            oReq.open("GET", "Api/GetMarkers?Longitude=" + CenterPoint.Longitude + "&Latitude=" + CenterPoint.Latitude + "&Radius=" + Radius);
+            oReq.send();
+
+
+        });
+
+        /*
         return {
             "type": "FeatureCollection",
             "features": [
@@ -312,7 +397,7 @@
                     }
                 }
             ]
-        };
+        };*/
     }
 
     return {
