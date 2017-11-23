@@ -257,7 +257,10 @@
                 if (marker.properties["Marker-Size"] > 1) {
                     el.classList.add("recent");
                 }
-                el.style.backgroundColor = "#" + marker.properties["Marker-Colour"];
+                el.style.backgroundColor = "#" + marker.properties["Marker-Primary"];
+                if (marker.properties["Marker-Secondary"] !== null) {
+                    el.style.borderColor = "#" + marker.properties["Marker-Secondary"];
+                }
                 el.style.width = (_Options.MarkerSize.CharityBase * marker.properties["Marker-Size"]) + "px";
                 el.style.height = (_Options.MarkerSize.CharityBase * marker.properties["Marker-Size"]) + "px";
                 el.style.borderRadius = (_Options.MarkerSize.CharityBase * marker.properties["Marker-Size"]) + "px";
@@ -320,11 +323,15 @@
     }
 
     function ActivateAddMarkerForm(Geolocation) {
+        // Show the new marker form
         _NewMarkerForm.classList.remove("is-hidden");
-        var locationDisplay = _NewMarkerForm.querySelector("#Location-Display");
-        var locationField = _NewMarkerForm.querySelector("#Charity-Location");
-        locationDisplay.value = Geolocation.Longitude + " " + Geolocation.Latitude;
-        locationField.value = Geolocation.Longitude + " " + Geolocation.Latitude;
+        // If the user is logged in, we'll have a form loaded, so we'll prefill the long/lat
+        if (_NewMarkerForm.querySelector("form") !== null) {
+            var locationDisplay = _NewMarkerForm.querySelector("#Location-Display");
+            var locationField = _NewMarkerForm.querySelector("#Charity-Location");
+            locationDisplay.value = Geolocation.Longitude + " " + Geolocation.Latitude;
+            locationField.value = Geolocation.Longitude + " " + Geolocation.Latitude;
+        }
     }
 
     function DeactivateAddMarkerForm() {
@@ -334,19 +341,23 @@
         }
 
         _NewMarkerForm.classList.add("is-hidden");
-        var locationDisplay = _NewMarkerForm.querySelector("#Location-Display");
-        var locationField = _NewMarkerForm.querySelector("#Charity-Location");
-        var charityName = _NewMarkerForm.querySelector("#Charity-Name");
-        var checkboxes = _NewMarkerForm.querySelectorAll("[name='Doing']");
 
-        // Empty input fields
-        locationDisplay.value = "";
-        locationField.value = "";
-        charityName.value = "";
-        // Uncheck all boxes
-        for (var i = 0; i < checkboxes.length; i++) {
-            var box = checkboxes[i];
-            box.checked = false;
+        // If the user is logged in, we'll have a form loaded, so we'll prefill the long/lat
+        if (_NewMarkerForm.querySelector("form") !== null) {
+            var locationDisplay = _NewMarkerForm.querySelector("#Location-Display");
+            var locationField = _NewMarkerForm.querySelector("#Charity-Location");
+            var charityName = _NewMarkerForm.querySelector("#Charity-Name");
+            var checkboxes = _NewMarkerForm.querySelectorAll("[name='Doing']");
+
+            // Empty input fields
+            locationDisplay.value = "";
+            locationField.value = "";
+            charityName.value = "";
+            // Uncheck all boxes
+            for (var i = 0; i < checkboxes.length; i++) {
+                var box = checkboxes[i];
+                box.checked = false;
+            }
         }
     }
 

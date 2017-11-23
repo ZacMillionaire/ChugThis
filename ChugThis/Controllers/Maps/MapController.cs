@@ -95,8 +95,7 @@ namespace Nulah.ChugThis.Controllers.Maps {
                 Doing = MarkerData.Doing,
                 Location = MarkerData.Location,
                 TimestampUTC = DateTime.UtcNow,
-                UserId = User.GetUserId(),
-                MarkerColour = charity.MarkerColour
+                UserId = User.GetUserId()
             };
 
             AddGeoMarkerToAll(MarkerData.Location, charityMarker.Id);
@@ -108,7 +107,9 @@ namespace Nulah.ChugThis.Controllers.Maps {
             return new Feature {
                 Type = "Feature",
                 Properties = new MarkerProperties {
-                    MarkerColour = charity.MarkerColour,
+                    MarkerPrimary = charity.Style.PrimaryColour,
+                    MarkerSecondary = charity.Style.SecondaryColour,
+                    MarkerIcon = charity.Style.Icon,
                     MarkerId = charityMarker.Id,
                     Opacity = 1.0,
                     Size = 1.0
@@ -193,6 +194,14 @@ namespace Nulah.ChugThis.Controllers.Maps {
                 .OrderBy(x => x.Distance)
                 .Take(MarkerCap);
 
+            if(Around.Count() == 0) {
+
+                return new FeatureCollection {
+                    Type = "FeatureCollection",
+                    Features = new Feature[] { }
+                };
+            }
+
             // Get the marker Ids (later I'll probably want their distance values, but for now this is all I'm interested in.
             var MarkerIds = Around.Select(x => (double)x.Member)
                 .ToArray();
@@ -205,9 +214,11 @@ namespace Nulah.ChugThis.Controllers.Maps {
 
                 var markers = _redis.HashGet(_entriesMarkersKey, Array.ConvertAll(MarkerIds, item => (RedisValue)item))
                     .Select(x => JsonConvert.DeserializeObject<CharityMarker>(x));
-                //.Where(x => x.TimestampUTC > threeHoursAgo); // Filter out any markers that are older than 3 hours ago
+
+                var MarkerStyles = GetCharityMarkerStyles(markers.Select(x => x.CharityId).Distinct().ToArray());
 
                 foreach(var marker in markers) {
+                    marker.Style = MarkerStyles[marker.CharityId];
                     Feature f = marker.ToGeoJsonFeature();
                     var timeSince = marker.TimestampUTC - threeHoursAgo;
                     // this is awkward counting the reverse but uh...
@@ -244,6 +255,20 @@ namespace Nulah.ChugThis.Controllers.Maps {
                 Type = "FeatureCollection",
                 Features = featureMarkers.ToArray()
             };
+        }
+
+        /// <summary>
+        ///     <para>
+        /// Runs a batch lookup of charities and returns their respective colours
+        ///     </para>
+        /// </summary>
+        /// <param name="CharityIds"></param>
+        private Dictionary<long, CharityStyle> GetCharityMarkerStyles(long[] CharityIds) {
+            var charityColourTable = CharityController.GetCharityStyleLookupKey(_settings);
+            var markerStyles = _redis.HashGet(charityColourTable, Array.ConvertAll(CharityIds, item => (RedisValue)item))
+                .Select(x => JsonConvert.DeserializeObject<CharityStyle>(x))
+                .ToDictionary(x => x.CharityId, x => x);
+            return markerStyles;
         }
 
 
@@ -302,9 +327,10 @@ namespace Nulah.ChugThis.Controllers.Maps {
         // The users time is also in UTC, for what its worth
         public DateTime TimestampUTC { get; set; }
         public string[] Doing { get; set; }
-        // this'll cause a bunch of fun later when I need to go over all the markers
-        // and find the ones for a charity to update their marker colours.
-        public string MarkerColour { get; set; }
+
+        [JsonIgnore]
+        // Pulled from charities when needed
+        public CharityStyle Style { get; set; }
 
         /// <summary>
         ///     <para>
@@ -323,7 +349,9 @@ namespace Nulah.ChugThis.Controllers.Maps {
             return new Feature {
                 Type = "Feature",
                 Properties = new MarkerProperties {
-                    MarkerColour = MarkerColour,
+                    MarkerPrimary = Style.PrimaryColour,
+                    MarkerSecondary = Style.SecondaryColour,
+                    MarkerIcon = Style.Icon,
                     MarkerId = Id,
                     Opacity = 1.0,
                     Size = 1.0
@@ -355,10 +383,20 @@ namespace Nulah.ChugThis.Controllers.Maps {
 
     public class MarkerProperties {
         /// <summary>
-        /// From the colour of the charity
+        /// Main marker colour (background)
         /// </summary>
-        [JsonProperty("Marker-Colour")]
-        public string MarkerColour { get; set; }
+        [JsonProperty("Marker-Primary")]
+        public string MarkerPrimary { get; set; }
+        /// <summary>
+        /// Secondary marker colour (border)
+        /// </summary>
+        [JsonProperty("Marker-Secondary")]
+        public string MarkerSecondary { get; set; }
+        /// <summary>
+        /// SVG icon filename
+        /// </summary>
+        [JsonProperty("Marker-Icon")]
+        public string MarkerIcon { get; set; }
         [JsonProperty("Marker-Id")]
         public long MarkerId { get; set; }
         [JsonProperty("Marker-Opacity")]

@@ -14,13 +14,16 @@ namespace Nulah.ChugThis.Controllers.Charity {
         private readonly IDatabase _redis;
         private readonly AppSettings _settings;
         private readonly string _charityBaseKey;
+        private readonly string _charityStyleLookupKey;
 
         private const string CHARITY_ID_COUNTER = "ID:Charity";
+        private const string CHARITY_MARKER_STYLE_TABLE = "Charity:MarkerStyles";
 
         public CharityController(IDatabase Redis, AppSettings Settings) {
             _redis = Redis;
             _settings = Settings;
             _charityBaseKey = $"{Settings.ConnectionStrings.Redis.BaseKey}Charity";
+            _charityStyleLookupKey = $"{Settings.ConnectionStrings.Redis.BaseKey}{CHARITY_MARKER_STYLE_TABLE}";
         }
 
         public string CharityBaseKey
@@ -29,6 +32,10 @@ namespace Nulah.ChugThis.Controllers.Charity {
             {
                 return _charityBaseKey;
             }
+        }
+
+        public static string GetCharityStyleLookupKey(AppSettings Settings) {
+            return $"{Settings.ConnectionStrings.Redis.BaseKey}{CHARITY_MARKER_STYLE_TABLE}";
         }
 
         /// <summary>
@@ -48,15 +55,35 @@ namespace Nulah.ChugThis.Controllers.Charity {
             if(_redis.HashExists(charityKey, "Profile")) {
                 return JsonConvert.DeserializeObject<Charity>(_redis.HashGet(charityKey, "Profile"));
             } else {
+                long NewCharityId = GetNextCharityId();
                 Charity newCharityEntry = new Charity {
-                    Id = GetNextCharityId(),
+                    Id = NewCharityId,
                     Name = CharityName,
-                    MarkerColour = GetHexColourFromCharityName(CharityName),
+                    Style = new CharityStyle {
+                        CharityId = NewCharityId,
+                        PrimaryColour = GetHexColourFromCharityName(CharityName)
+                    },
                     isNew = true
                 };
+
+                CreateOrUpdateCharityStyle(NewCharityId, newCharityEntry.Style);
+
                 _redis.HashSet(charityKey, "Profile", newCharityEntry.ToString());
                 return newCharityEntry;
             }
+        }
+
+        /// <summary>
+        ///     <para>
+        /// Creates (or updates if a hash for a charityId already exists) a charity style entry for a given charity Id, then returns the modified entry.
+        ///     </para>
+        /// </summary>
+        /// <param name="CharityId"></param>
+        /// <param name="NewStyle"></param>
+        /// <returns></returns>
+        private CharityStyle CreateOrUpdateCharityStyle(long CharityId, CharityStyle NewStyle) {
+            _redis.HashSet(_charityStyleLookupKey, CharityId, JsonConvert.SerializeObject(NewStyle));
+            return JsonConvert.DeserializeObject<CharityStyle>(_redis.HashGet(_charityStyleLookupKey, CharityId));
         }
 
         /// <summary>
@@ -67,18 +94,8 @@ namespace Nulah.ChugThis.Controllers.Charity {
         /// <param name="CharityName"></param>
         /// <returns></returns>
         private string GetHexColourFromCharityName(string CharityName) {
-            // Lets be lazy and just take the first 3 letters of the charity name and get their bytes
-            var charityBytes = Encoding.ASCII.GetBytes(CharityName).Take(3);
-            StringBuilder sb = new StringBuilder();
-
-            // Then we'll just turn each one into a hex
-            foreach(var b in charityBytes) {
-                sb.Append(b.ToString("x2"));
-            }
-
-            // and return the resulting string.
-            // Alt: How to turn 3 chars into 6
-            return sb.ToString();
+            var charityBytes = CharityName.GetHashCode() & 0x00FFFFFF;
+            return charityBytes.ToString("x2");
         }
 
         /// <summary>
@@ -173,12 +190,14 @@ namespace Nulah.ChugThis.Controllers.Charity {
         /// <summary>
         /// Indicates if the charity was recently created, and lacks a URL or details
         /// </summary>
+#pragma warning disable IDE1006 // Naming Styles
         public bool isNew { get; set; }
+#pragma warning restore IDE1006 // Naming Styles
 
         /// <summary>
-        /// RGB colour hex
+        /// Colours and icons to use to distinguish this charity on maps
         /// </summary>
-        public string MarkerColour { get; set; }
+        public CharityStyle Style { get; set; }
 
         /// <summary>
         ///     <para>
@@ -192,5 +211,21 @@ namespace Nulah.ChugThis.Controllers.Charity {
         public override string ToString() {
             return JsonConvert.SerializeObject(this);
         }
+    }
+
+    public class CharityStyle {
+        /// <summary>
+        /// Background colour for their marker on the map view in most cases
+        /// </summary>
+        public string PrimaryColour { get; set; }
+        /// <summary>
+        /// Accent colour, either border on map view, or bottom border in details view.
+        /// </summary>
+        public string SecondaryColour { get; set; }
+        /// <summary>
+        /// Will eventually be a link to an SVG file for the charity.
+        /// </summary>
+        public string Icon { get; set; }
+        public long CharityId { get; set; }
     }
 }
