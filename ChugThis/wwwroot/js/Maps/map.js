@@ -223,6 +223,9 @@
 
         function MoveToCharityMarker(Event, Marker) {
             Event.preventDefault();
+
+            DeactivateAddMarkerForm();
+
             //var infobox = document.getElementById("info");
             //infobox.innerHTML = JSON.stringify(Marker);
             try {
@@ -250,7 +253,10 @@
             GeoJsonResult.features.forEach(function (marker) {
                 // create a HTML element for each feature
                 var el = document.createElement('div');
-                el.className = 'custom-marker-CHANGEME';
+                el.className = 'charity-marker';
+                if (marker.properties["Marker-Size"] > 1) {
+                    el.classList.add("recent");
+                }
                 el.style.backgroundColor = "#" + marker.properties["Marker-Colour"];
                 el.style.width = (_Options.MarkerSize.CharityBase * marker.properties["Marker-Size"]) + "px";
                 el.style.height = (_Options.MarkerSize.CharityBase * marker.properties["Marker-Size"]) + "px";
@@ -295,15 +301,13 @@
             return;
         }
 
-        // remove the previously added fuckwit
+        // remove the previously added temp marker
         if (_TempCharityMarker !== null) {
             _TempCharityMarker.remove();
         }
 
         var el = document.createElement('div');
-        el.className = 'add-marker-CHANGEME';
-        el.innerText = "Charity";
-        el.style.backgroundColor = "#006633";
+        el.className = 'add-charity-marker';
 
         _TempCharityMarker = new mapboxgl.Marker(el)
             .setLngLat([GeoObject.Longitude, GeoObject.Latitude])
@@ -322,6 +326,30 @@
         locationDisplay.value = Geolocation.Longitude + " " + Geolocation.Latitude;
         locationField.value = Geolocation.Longitude + " " + Geolocation.Latitude;
     }
+
+    function DeactivateAddMarkerForm() {
+        // Hide the temp marker
+        if (_TempCharityMarker !== null) {
+            _TempCharityMarker.remove();
+        }
+
+        _NewMarkerForm.classList.add("is-hidden");
+        var locationDisplay = _NewMarkerForm.querySelector("#Location-Display");
+        var locationField = _NewMarkerForm.querySelector("#Charity-Location");
+        var charityName = _NewMarkerForm.querySelector("#Charity-Name");
+        var checkboxes = _NewMarkerForm.querySelectorAll("[name='Doing']");
+
+        // Empty input fields
+        locationDisplay.value = "";
+        locationField.value = "";
+        charityName.value = "";
+        // Uncheck all boxes
+        for (var i = 0; i < checkboxes.length; i++) {
+            var box = checkboxes[i];
+            box.checked = false;
+        }
+    }
+
 
     // TODO: Make this an API call
     function GetCharitiesNearLocation(CenterPoint, Radius) {
