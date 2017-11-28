@@ -59,6 +59,12 @@
             <span id="loading-text"></span>
         </div>
     </div>
+    <div id="page-error-overlay">
+        <div class="error">
+            <div class="cutesy-error-shit">:(</div>
+            <span id="error-text"></span>
+        </div>
+    </div>
     <div class="container is-fluid" style="height: 100%">
         @RenderBody()
         <div class="container is-fluid">
@@ -67,7 +73,7 @@
 
     </div>
     <environment include="Development">
-        <script src="~/js/site.js" asp-append-version="true"></script>
+        <script src="~/js/helper.js" asp-append-version="true"></script>
     </environment>
     @RenderSection("Scripts", required: false)
 </body>

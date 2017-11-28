@@ -13,6 +13,11 @@
                 Add: 25,
                 CharityBase: 20
             },
+            UserPreferences: {
+                // it sucks to have this on by default, but it's to draw attention to user preferences.
+                // Users annoyed by the extra wait will change this pretty quickly.
+                AutoLocate: false
+            },
             FormTarget: "#add-new-marker-form"
         };
     }
@@ -28,7 +33,8 @@
     var _Scale = null;
     var _MobileMode = false; // used to prevent click events on mobile
     var _MarkerZoom = _Options.Zoom.Desktop; // default to desktop zoom
-    //    var _MapBox = null;
+    var _MapBox = null;
+    var _MapLoaded = false;
 
     // Define some time saving stuff later because I don't like
     // having to write bullshit when I can just call a method
@@ -91,11 +97,11 @@
     }
 
     function RenderMap(StartingPosition) {
-        PageBusyOverlay.Show("Loading Map");
+
+        PageBusyOverlay.Show("Loading Map Data From MapBox...");
+
         if (_MapBoxApiKey === null) {
-            // TODO: change this to a modal thing later
-            alert("Failed to render map. See console for details.");
-            console.error("No MapBox Api key given");
+            PageBusyOverlay.Error("Error loading map. API Key missing.");
             return;
         }
 
@@ -111,53 +117,102 @@
         });
 
 
-
-        _MapBox.addControl(new mapboxgl.GeolocateControl({
+        var geoLocationControl = new mapboxgl.GeolocateControl({
             positionOptions: {
-                enableHighAccuracy: true,
+                enableHighAccuracy: false,
                 maximumAge: 1000
             },
+            fitBoundsOptions: {
+                maxZoom: 15
+            },
             trackUserLocation: true
-        }));
+        });
+        _MapBox.addControl(geoLocationControl);
 
 
         _MapBox.on("load", function () {
-            console.log("loaded");
-
-            console.log(_MapBox);
-
-            // load the initial fuckwits around the users location
-            RenderCharities(_UserLocation);
-
-            // User Location Tracking (geospatially, not analytics)
-            //AddUserLocation(_MapBox);
 
             _MapLoaded = true;
+
+            if (_Options.UserPreferences.AutoLocate === true) {
+                // If it loots stupid...
+                var _singleLocEvent = false;
+
+                function oneOfftrackuserlocationstart(Event) {
+                    PageBusyOverlay.Show("Locating you... (You can turn this off in your settings)");
+                }
+
+                function oneOffGeolocateEvent(Event) {
+
+                    // ...It's probably a stupid fix for mobile development
+                    if (_singleLocEvent === true) {
+                        return;
+                    }
+                    // Prevent this from firing ever again
+                    _singleLocEvent = true;
+
+                    _MapBox.zoomTo(_Options.Zoom.StartZoom); // because lol MaxZoom means fucking nothing if you want to stay close
+                    PageBusyOverlay.Show("Finding hot chuggers in your area...");
+                    // Wait until data is loaded the first time
+                    RenderCharities(_UserLocation).then(function () {
+                        // hide the overlay
+                        PageBusyOverlay.Hide();
+                        // unbind location control events. Don't care anymore.
+                        // This makes sure that no stupid cutesy first time load shit happens again
+                        geoLocationControl.off("geolocate", oneOffGeolocateEvent);
+                        geoLocationControl.off("trackuserlocationstart", oneOfftrackuserlocationstart);
+                    });
+                }
+
+                // User Location Tracking (geospatially, not analytics)
+                //AddUserLocation(_MapBox);
+
+                //console.log(_MapBox);
+
+                geoLocationControl.on("trackuserlocationstart", oneOfftrackuserlocationstart);
+                geoLocationControl.on("geolocate", oneOffGeolocateEvent);
+
+                geoLocationControl._onClickGeolocate();
+            } else {
+                PageBusyOverlay.Show("Finding hot chuggers in your area...");
+                // Wait until data is loaded the first time
+                RenderCharities(_UserLocation).then(function () {
+                    // hide the overlay
+                    PageBusyOverlay.Hide();
+                });
+            }
 
             try {
                 // This is kind of horrible, but it's done so if a user isn't logged in when they tap to add a marker,
                 // we redirect them to the form with where they tapped so they can add the marker they had planned with minimal fuss.
-                var match = RegExp('[?&]lnglat=([^&]*)').exec(window.location.search);
-                if (match) {
-                    var lnglat = decodeURIComponent(match[1].replace(/\+/g, ' ')).split(',');
-                    console.log(window.location.search);
+                var queryParams = UriHelper.GetQueryParams(window.location.search);
+                if (queryParams.Count > 0) {
+                    console.log(queryParams);
+                    /*
                     var queryStringGeo = ReturnCoordObject(lnglat[0], lnglat[1]);
                     AddCharityMarker(queryStringGeo, "PageLoad", _Options.Zoom.StartZoom);
+                    */
                 }
             } catch (e) {
                 console.error(e);
-            } finally {
-                PageBusyOverlay.Hide();
             }
         });
 
+        _MapBox.on("error", function (e) {
+            PageBusyOverlay.Error("Error loading map. API Key invalid or expired. Sorry about that.");
+        });
+
         _MapBox.on("dragend", function (e) {
-            var mapcenter = _MapBox.getCenter();
-            RenderCharities(ReturnCoordObject(mapcenter.lng, mapcenter.lat));
+            if (_MapLoaded) {
+                var mapcenter = _MapBox.getCenter();
+                RenderCharities(ReturnCoordObject(mapcenter.lng, mapcenter.lat));
+            }
         });
         _MapBox.on("zoomend", function (e) {
-            var mapcenter = _MapBox.getCenter();
-            RenderCharities(ReturnCoordObject(mapcenter.lng, mapcenter.lat));
+            if (_MapLoaded) {
+                var mapcenter = _MapBox.getCenter();
+                RenderCharities(ReturnCoordObject(mapcenter.lng, mapcenter.lat));
+            }
         });
 
         // Trigger the add marker
@@ -196,136 +251,120 @@
     }
 
     function RenderCharities(GeoLoc) {
+        // fuck this is messy
+        return new Promise(function (resolve, reject) {
+            var bbox = _MapBox.getContainer().getBoundingClientRect();
+            var width = bbox.width;
+            var height = bbox.height;
 
-        var bbox = _MapBox.getContainer().getBoundingClientRect();
-        var width = bbox.width;
-        var height = bbox.height;
+            var topLeft = _MapBox.unproject([0, 0]);
+            var bottomRight = _MapBox.unproject([width, height]);
 
-        var topLeft = _MapBox.unproject([0, 0]);
-        var bottomRight = _MapBox.unproject([width, height]);
-        /*
-        debug markers
-        var el1 = document.createElement('div');
-        el1.className = 'add-marker-CHANGEME';
-        el1.innerText = "tl";
-        el1.style.backgroundColor = "#f00";
+            var diagonalDistance = calcCrow(topLeft.lat, topLeft.lng, bottomRight.lat, bottomRight.lng);
 
-        new mapboxgl.Marker(el1)
-            .setLngLat(topLeft)
-            .addTo(_MapBox);
+            // Shamelessly stolen from SnackOverflow until I have time to rewrite it
+            // https://stackoverflow.com/questions/18883601/function-to-calculate-distance-between-two-coordinates-shows-wrong
+            //This function takes in latitude and longitude of two location and returns the distance between them as the crow flies (in km * 1000 (meters))
+            function calcCrow(lat1, lon1, lat2, lon2) {
+                var R = 6371; // km
+                var dLat = toRad(lat2 - lat1);
+                var dLon = toRad(lon2 - lon1);
+                var lat1 = toRad(lat1);
+                var lat2 = toRad(lat2);
 
-        var el2 = document.createElement('div');
-        el2.className = 'add-marker-CHANGEME';
-        el2.innerText = "br";
-        el2.style.backgroundColor = "#0f0";
-
-        new mapboxgl.Marker(el2)
-            .setLngLat(bottomRight)
-            .addTo(_MapBox);*/
-
-        var diagonalDistance = calcCrow(topLeft.lat, topLeft.lng, bottomRight.lat, bottomRight.lng);
-        //console.log("diagonal dist", diagonalDistance + "m");
-
-        // Shamelessly stolen from SnackOverflow until I have time to rewrite it
-        // https://stackoverflow.com/questions/18883601/function-to-calculate-distance-between-two-coordinates-shows-wrong
-        //This function takes in latitude and longitude of two location and returns the distance between them as the crow flies (in km * 1000 (meters))
-        function calcCrow(lat1, lon1, lat2, lon2) {
-            var R = 6371; // km
-            var dLat = toRad(lat2 - lat1);
-            var dLon = toRad(lon2 - lon1);
-            var lat1 = toRad(lat1);
-            var lat2 = toRad(lat2);
-
-            var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-                Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
-            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            var d = R * c;
-            return d * 1000;
-        }
-
-        // Converts numeric degrees to radians
-        function toRad(Value) {
-            return Value * Math.PI / 180;
-        }
-
-
-        console.log("Rendering Charities around", GeoLoc, "with radius", (diagonalDistance / 4) + "m");
-
-
-        function MoveToCharityMarker(Event, Marker) {
-            Event.preventDefault();
-
-            DeactivateAddMarkerForm();
-
-            //var infobox = document.getElementById("info");
-            //infobox.innerHTML = JSON.stringify(Marker);
-            try {
-                _MapBox.flyTo({ center: Marker.geometry.coordinates, zoom: _MarkerZoom });
-            } catch (ex) {
-                console.log(ex);
-                //infobox.innerHTML = ex;
+                var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                    Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+                var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+                var d = R * c;
+                return d * 1000;
             }
-            //Event.stopPropagation(); // prevent any other things from firing
-        }
+
+            // Converts numeric degrees to radians
+            function toRad(Value) {
+                return Value * Math.PI / 180;
+            }
 
 
+            //console.log("Rendering Charities around", GeoLoc, "with radius", (diagonalDistance / 4) + "m");
 
-        GetCharitiesNearLocation(GeoLoc, diagonalDistance).then(function (GeoJsonResult) {
 
-            console.log("Promise complete", GeoJsonResult);
+            function MoveToCharityMarker(Event, Marker) {
+                Event.preventDefault();
 
-            // remove all previously loaded markers once new data has loaded
-            _LoadedCharityMarkers.forEach(function (marker) {
-                marker.remove();
-            });
+                DeactivateAddMarkerForm();
 
-            _LoadedCharityMarkers = [];
-
-            GeoJsonResult.features.forEach(function (marker) {
-                // create a HTML element for each feature
-                var el = document.createElement('div');
-                el.className = 'charity-marker';
-                if (marker.properties["Marker-Size"] > 1) {
-                    el.classList.add("recent");
+                //var infobox = document.getElementById("info");
+                //infobox.innerHTML = JSON.stringify(Marker);
+                try {
+                    _MapBox.flyTo({ center: Marker.geometry.coordinates, zoom: _MarkerZoom });
+                } catch (ex) {
+                    console.log(ex);
+                    //infobox.innerHTML = ex;
                 }
-                el.style.backgroundColor = "#" + marker.properties["Marker-Primary"];
-                if (marker.properties["Marker-Secondary"] !== null) {
-                    el.style.borderColor = "#" + marker.properties["Marker-Secondary"];
-                }
-                el.style.width = (_Options.MarkerSize.CharityBase * marker.properties["Marker-Size"]) + "px";
-                el.style.height = (_Options.MarkerSize.CharityBase * marker.properties["Marker-Size"]) + "px";
-                el.style.borderRadius = (_Options.MarkerSize.CharityBase * marker.properties["Marker-Size"]) + "px";
-                el.style.opacity = (marker.properties["Marker-Opacity"]);
+                //Event.stopPropagation(); // prevent any other things from firing
+            }
 
-                // make a marker for each feature and add to the map
-                var m = new mapboxgl.Marker(el)
-                    .setLngLat(marker.geometry.coordinates)
-                    .addTo(_MapBox);
 
-                el.addEventListener("click", function (e) {
-                    MoveToCharityMarker(e, marker);
+
+            GetCharitiesNearLocation(GeoLoc, diagonalDistance).then(function (GeoJsonResult) {
+
+                //console.log("Promise complete", GeoJsonResult);
+
+                // remove all previously loaded markers once new data has loaded
+                _LoadedCharityMarkers.forEach(function (marker) {
+                    marker.remove();
                 });
 
-                el.addEventListener("touchstart", function (e) {
-                    _TouchDrag = false;
-                });
-                // Trigger the add marker for mobile
-                el.addEventListener("touchend", function (e) {
-                    if (_TouchDrag === false) {
-                        MoveToCharityMarker(e, marker);
+                _LoadedCharityMarkers = [];
+
+                GeoJsonResult.features.forEach(function (marker) {
+                    // create a HTML element for each feature
+                    var el = document.createElement('div');
+                    el.className = 'charity-marker';
+                    if (marker.properties["Marker-Size"] > 1) {
+                        el.classList.add("recent");
                     }
+                    el.style.backgroundColor = "#" + marker.properties["Marker-Primary"];
+                    if (marker.properties["Marker-Secondary"] !== null) {
+                        el.style.borderColor = "#" + marker.properties["Marker-Secondary"];
+                    }
+                    el.style.width = (_Options.MarkerSize.CharityBase * marker.properties["Marker-Size"]) + "px";
+                    el.style.height = (_Options.MarkerSize.CharityBase * marker.properties["Marker-Size"]) + "px";
+                    el.style.borderRadius = (_Options.MarkerSize.CharityBase * marker.properties["Marker-Size"]) + "px";
+                    el.style.opacity = (marker.properties["Marker-Opacity"]);
+
+                    // make a marker for each feature and add to the map
+                    var m = new mapboxgl.Marker(el)
+                        .setLngLat(marker.geometry.coordinates)
+                        .addTo(_MapBox);
+
+                    el.addEventListener("click", function (e) {
+                        MoveToCharityMarker(e, marker);
+                    });
+
+                    el.addEventListener("touchstart", function (e) {
+                        _TouchDrag = false;
+                    });
+                    // Trigger the add marker for mobile
+                    el.addEventListener("touchend", function (e) {
+                        if (_TouchDrag === false) {
+                            MoveToCharityMarker(e, marker);
+                        }
+                    });
+
+                    // disable tap events if a drag occurs (user is probably panning or pinch zooming, not tapping)
+                    el.addEventListener("touchmove", function (e) {
+                        _TouchDrag = true;
+                    });
+
+
+                    _LoadedCharityMarkers.Add(m);
                 });
 
-                // disable tap events if a drag occurs (user is probably panning or pinch zooming, not tapping)
-                el.addEventListener("touchmove", function (e) {
-                    _TouchDrag = true;
-                });
-
-
-                _LoadedCharityMarkers.Add(m);
+                // HEY HOW ABOUT NESTED PROMISES
+                resolve(true);
             });
-        });
-
+        }); // end of promise
     }
 
     function AddCharityMarker(GeoObject, OriginalEvent, Zoom) {
@@ -369,10 +408,13 @@
             InterceptFormSubmission();
         } else {
             var loginButton = _NewMarkerForm.querySelector("#new-marker-login");
-            var lnglatparam = "/?lnglat=" + Geolocation.Longitude + "," + Geolocation.Latitude;
-            var baseuri = loginButton.href;
+            var hash = GeoHash.Encode(Geolocation.Longitude, Geolocation.Latitude);
+            var originalHref = loginButton.href;
+            console.log(originalHref, hash, Geolocation);
+            //var lnglatparam = "/?lnglat=" + Geolocation.Longitude + "," + Geolocation.Latitude;
+            //var baseuri = loginButton.href;
             // console.log(baseuri + "?RedirectUri=" + encodeURI(lnglatparam));
-            loginButton.href = baseuri + "?RedirectUri=" + encodeURI(lnglatparam);
+            //loginButton.href = baseuri + "?RedirectUri=" + encodeURI(lnglatparam);
         }
     }
 
@@ -462,30 +504,4 @@
     return {
         RenderMap: RenderMap
     };
-};
-
-
-var PageBusyOverlay = {
-    Show: function _showOverlay(LoadingText) {
-        var htmlRoot = document.querySelector("html");
-        var pageBusy = document.querySelector("#page-busy-overlay");
-        pageBusy.querySelector("#loading-text").innerHTML = LoadingText;
-        if (!htmlRoot.classList.contains("page-busy")) {
-            htmlRoot.classList.add("page-busy");
-            if (!pageBusy.classList.contains("show")) {
-                pageBusy.classList.add("show");
-            }
-        }
-    },
-    Hide: function _hideOverlay() {
-        var htmlRoot = document.querySelector("html");
-        var pageBusy = document.querySelector("#page-busy-overlay");
-        pageBusy.querySelector("#loading-text").innerHTML = "";
-        if (htmlRoot.classList.contains("page-busy")) {
-            htmlRoot.classList.remove("page-busy");
-            if (pageBusy.classList.contains("show")) {
-                pageBusy.classList.remove("show");
-            }
-        }
-    }
 };

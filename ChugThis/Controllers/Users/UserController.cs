@@ -108,7 +108,8 @@ namespace Nulah.ChugThis.Controllers.Users {
                     ProviderShort = UserData.ProviderShort,
                     isExpressMode = false,
                     Zoom = new Models.Maps.ZoomOptions(), // Will have defaults set on creation
-                    Marker = new Models.Maps.MarkerOptions() // Will have defaults set on creation.
+                    Marker = new Models.Maps.MarkerOptions(), // Will have defaults set on creation.
+                    Preferences = new Preferences()
                 };
             }
 

@@ -19,10 +19,14 @@ namespace Nulah.ChugThis.Models.Users {
         public DateTime LastSeenUTC { get; set; }
         public ZoomOptions Zoom { get; set; }
         public MarkerOptions Marker { get; set; }
+        public Preferences Preferences { get; set; }
+
+
         public PublicUser() {
             isLoggedIn = false;
             Zoom = new ZoomOptions();
             Marker = new MarkerOptions();
+            Preferences = new Preferences();
         }
 
         /// <summary>
