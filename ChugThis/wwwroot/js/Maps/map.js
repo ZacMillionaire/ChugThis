@@ -91,6 +91,7 @@
     }
 
     function RenderMap(StartingPosition) {
+        PageBusyOverlay.Show("Loading Map");
         if (_MapBoxApiKey === null) {
             // TODO: change this to a modal thing later
             alert("Failed to render map. See console for details.");
@@ -134,7 +135,6 @@
             _MapLoaded = true;
 
             try {
-
                 // This is kind of horrible, but it's done so if a user isn't logged in when they tap to add a marker,
                 // we redirect them to the form with where they tapped so they can add the marker they had planned with minimal fuss.
                 var match = RegExp('[?&]lnglat=([^&]*)').exec(window.location.search);
@@ -146,8 +146,9 @@
                 }
             } catch (e) {
                 console.error(e);
+            } finally {
+                PageBusyOverlay.Hide();
             }
-
         });
 
         _MapBox.on("dragend", function (e) {
@@ -365,12 +366,55 @@
             var locationField = _NewMarkerForm.querySelector("#Charity-Location");
             locationDisplay.value = Geolocation.Longitude + " " + Geolocation.Latitude;
             locationField.value = Geolocation.Longitude + " " + Geolocation.Latitude;
+            InterceptFormSubmission();
         } else {
             var loginButton = _NewMarkerForm.querySelector("#new-marker-login");
             var lnglatparam = "/?lnglat=" + Geolocation.Longitude + "," + Geolocation.Latitude;
             var baseuri = loginButton.href;
             // console.log(baseuri + "?RedirectUri=" + encodeURI(lnglatparam));
             loginButton.href = baseuri + "?RedirectUri=" + encodeURI(lnglatparam);
+        }
+    }
+
+    function MarkerSubmission(FormData) {
+        return new Promise(function (resolve, reject) {
+            var oReq = new XMLHttpRequest();
+
+            oReq.onreadystatechange = function () {
+                if (oReq.readyState === 4) {
+                    resolve(JSON.parse(oReq.response));
+                }
+            }
+
+            oReq.open("POST", "Api/Add/NewMarker");
+            oReq.send(FormData);
+
+
+        });
+    }
+
+    function SubmitNewMarker(FormSubmitEvent) {
+        PageBusyOverlay.Show("Submitting...");
+
+        FormSubmitEvent.preventDefault();
+        //console.log("FormSubmitEvent:", FormSubmitEvent);
+        var formData = new FormData(FormSubmitEvent.target);
+
+        // I don't really do anything with this yet (I'll probably show a modal or something later
+        MarkerSubmission(formData).then(function (newFeature) {
+            PageBusyOverlay.Hide();
+            DeactivateAddMarkerForm();
+            console.log(newFeature);
+            RenderCharities(ReturnCoordObject(newFeature.geometry.coordinates[0], newFeature.geometry.coordinates[1]));
+        });
+    }
+
+    function InterceptFormSubmission() {
+        // bind a function to the event once
+        if (_NewMarkerForm["submitEvent"] === undefined) {
+            console.log("binding form once");
+            _NewMarkerForm.addEventListener("submit", SubmitNewMarker);
+            _NewMarkerForm["submitEvent"] = "bound";
         }
     }
 
@@ -402,92 +446,46 @@
     }
 
 
-    // TODO: Make this an API call
     function GetCharitiesNearLocation(CenterPoint, Radius) {
         return new Promise(function (resolve, reject) {
             var oReq = new XMLHttpRequest();
-
             oReq.onreadystatechange = function () {
                 if (oReq.readyState === 4) {
-                    //console.log("---");
-                    //console.log("Request done", JSON.parse(oReq.response));
-                    //console.log("---");
-
                     resolve(JSON.parse(oReq.response));
                 }
             }
-
             oReq.open("GET", "Api/GetMarkers?Longitude=" + CenterPoint.Longitude + "&Latitude=" + CenterPoint.Latitude + "&Radius=" + Radius);
             oReq.send();
-
-
         });
-
-        /*
-        return {
-            "type": "FeatureCollection",
-            "features": [
-                {
-                    "type": "Feature",
-                    "properties": {
-                        "Marker-Colour": "#f0f",
-                        "Marker-Id": 1
-                    },
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [
-                            153.00760368874035,
-                            -27.4677551075602,
-                        ]
-                    }
-                },
-                {
-                    "type": "Feature",
-                    "properties": {
-                        "Marker-Colour": "#ff0",
-                        "Marker-Id": 2
-                    },
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [
-                            153.00777106795368,
-                            -27.4677551075602,
-                        ]
-                    }
-                },
-                {
-                    "type": "Feature",
-                    "properties": {
-                        "Marker-Colour": "#3f5",
-                        "Marker-Id": 3
-                    },
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [
-                            153.00760368874035,
-                            -27.46780222416966,
-                        ]
-                    }
-                },
-                {
-                    "type": "Feature",
-                    "properties": {
-                        "Marker-Colour": "#00f",
-                        "Marker-Id": Math.floor(((Math.random() * 10)))
-                    },
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [
-                            153.00989439999998,
-                            -27.4657359,
-                        ]
-                    }
-                }
-            ]
-        };*/
     }
 
     return {
         RenderMap: RenderMap
     };
+};
+
+
+var PageBusyOverlay = {
+    Show: function _showOverlay(LoadingText) {
+        var htmlRoot = document.querySelector("html");
+        var pageBusy = document.querySelector("#page-busy-overlay");
+        pageBusy.querySelector("#loading-text").innerHTML = LoadingText;
+        if (!htmlRoot.classList.contains("page-busy")) {
+            htmlRoot.classList.add("page-busy");
+            if (!pageBusy.classList.contains("show")) {
+                pageBusy.classList.add("show");
+            }
+        }
+    },
+    Hide: function _hideOverlay() {
+        var htmlRoot = document.querySelector("html");
+        var pageBusy = document.querySelector("#page-busy-overlay");
+        pageBusy.querySelector("#loading-text").innerHTML = "";
+        if (htmlRoot.classList.contains("page-busy")) {
+            htmlRoot.classList.remove("page-busy");
+            if (pageBusy.classList.contains("show")) {
+                pageBusy.classList.remove("show");
+            }
+        }
+    }
 };

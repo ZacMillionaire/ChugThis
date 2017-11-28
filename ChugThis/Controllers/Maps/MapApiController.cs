@@ -26,12 +26,24 @@ namespace Nulah.ChugThis.Controllers.Maps {
         [HttpPost]
         [Route("~/Add/NewMarker")]
         [ValidateAntiForgeryToken]
+        public IActionResult AddNewCharityMarkerNoScript([FromForm]NewCharityMarker FormData) {
+            // The user somehow gets the form to display, and fill out a location without...javascript...
+            var user = (PublicUser)ViewData["User"];
+            var map = new MapController(_redis, _settings);
+            var addedMarker = map.NewGeoMarker(FormData, user);
+            return RedirectToAction("Index", "Home", new { area = "Index" });
+        }
+
+        [HttpPost]
+        [Route("~/Api/Add/NewMarker")]
+        [ValidateAntiForgeryToken]
         public Feature AddNewCharityMarker([FromForm]NewCharityMarker FormData) {
             var user = (PublicUser)ViewData["User"];
             var map = new MapController(_redis, _settings);
             var addedMarker = map.NewGeoMarker(FormData, user);
             return addedMarker;
         }
+
 
         [HttpGet]
         [Route("~/Api/GetMarkers")]
