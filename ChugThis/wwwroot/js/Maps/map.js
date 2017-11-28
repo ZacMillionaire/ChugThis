@@ -27,6 +27,7 @@
     var _NewMarkerForm = document.querySelector(_Options.FormTarget);
     var _Scale = null;
     var _MobileMode = false; // used to prevent click events on mobile
+    var _MarkerZoom = _Options.Zoom.Desktop; // default to desktop zoom
     //    var _MapBox = null;
 
     // Define some time saving stuff later because I don't like
@@ -125,7 +126,7 @@
             console.log(_MapBox);
 
             // load the initial fuckwits around the users location
-            RenderCharities(_UserLocation, _MapBox);
+            RenderCharities(_UserLocation);
 
             // User Location Tracking (geospatially, not analytics)
             //AddUserLocation(_MapBox);
@@ -141,7 +142,7 @@
                     var lnglat = decodeURIComponent(match[1].replace(/\+/g, ' ')).split(',');
                     console.log(window.location.search);
                     var queryStringGeo = ReturnCoordObject(lnglat[0], lnglat[1]);
-                    AddCharityMarker(queryStringGeo, "PageLoad");
+                    AddCharityMarker(queryStringGeo, "PageLoad", _Options.Zoom.StartZoom);
                 }
             } catch (e) {
                 console.error(e);
@@ -161,24 +162,31 @@
         // Trigger the add marker
         _MapBox.on("click", function (e) {
             if (_MobileMode === false) {
-                AddCharityMarker(ReturnCoordObject(e.lngLat.lng, e.lngLat.lat), e.originalEvent);
+                AddCharityMarker(ReturnCoordObject(e.lngLat.lng, e.lngLat.lat), e.originalEvent, _Options.Zoom.Desktop);
+            } else {
+                // stupid statement to make marker movement work on mobile, because apparently touchend does fuck knows what to mapbox and
+                // breaks .flyTo
+                // Fuck knows
+                AddCharityMarker(ReturnCoordObject(e.lngLat.lng, e.lngLat.lat), e.originalEvent, _Options.Zoom.Mobile);
             }
         });
-
         _MapBox.on("touchstart", function (e) {
             _TouchDrag = false;
             // If we're getting a touch start, we're on mobile, so set mobile mode to true to prevent map click events
             if (_MobileMode === false) {
                 _MobileMode = true;
+                _MarkerZoom = _Options.Zoom.Mobile;
             }
         });
+        /*
         // Trigger the add marker for mobile
+        // lol no apparently this won't fucking work because: lol who knows
         _MapBox.on("touchend", function (e) {
             if (_TouchDrag === false) {
                 AddCharityMarker(ReturnCoordObject(e.lngLat.lng, e.lngLat.lat), e.originalEvent);
             }
         });
-
+        */
         // disable tap events if a drag occurs (user is probably panning or pinch zooming, not tapping)
         _MapBox.on("touchmove", function (e) {
             _TouchDrag = true;
@@ -251,7 +259,7 @@
             //var infobox = document.getElementById("info");
             //infobox.innerHTML = JSON.stringify(Marker);
             try {
-                _MapBox.flyTo({ center: Marker.geometry.coordinates, zoom: _Options.Zoom.Desktop });
+                _MapBox.flyTo({ center: Marker.geometry.coordinates, zoom: _MarkerZoom });
             } catch (ex) {
                 console.log(ex);
                 //infobox.innerHTML = ex;
@@ -319,7 +327,7 @@
 
     }
 
-    function AddCharityMarker(GeoObject, OriginalEvent) {
+    function AddCharityMarker(GeoObject, OriginalEvent, Zoom) {
 
         // If the url has a lnglat query string param it means the user had attempted to add a marker but wasn't logged in.
         // So lets say they did if the Original Event is the string PageLoad and treat it as if they had clicked the map.
@@ -343,7 +351,7 @@
             .addTo(_MapBox);
 
         console.log("adding Charity", GeoObject);
-        _MapBox.flyTo({ center: [GeoObject.Longitude, GeoObject.Latitude], zoom: _Options.Zoom.Desktop });
+        _MapBox.flyTo({ center: [GeoObject.Longitude, GeoObject.Latitude], zoom: Zoom });
 
         ActivateAddMarkerForm(GeoObject);
     }
