@@ -1,12 +1,13 @@
-﻿@{
+﻿@using Nulah.ChugThis.Models
+@{
     PublicUser User = (PublicUser)ViewData["User"];
+    Provider LoginProvider = (Provider)ViewData["LoginProvider"];
 }
 <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.41.0/mapbox-gl.js'></script>
 <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.41.0/mapbox-gl.css' rel='stylesheet' />
 <link href="~/css/site/mapbox.css" rel="stylesheet" />
 <div id="mapbox-container">
 </div>
-<div id="info"></div>
 <div class="is-small-screen-container is-hidden" id="add-new-marker-form">
     @if(!User.isLoggedIn) {
         <div class="message is-warning">
@@ -15,7 +16,17 @@
 
             </div>
             <div class="message-body">
-                You'll need to be logged in before you'll be able to add a new location.
+                <div class="container is-fluid">You'll need to be logged in before you'll be able to add a new location.</div>
+                <div class="container has-text-centered">
+                    <a id="new-marker-login" class="button" href="~/Login/@(LoginProvider.AuthenticationScheme)" style="color: #fff !important; background-color:#3b5998; border-color:#496bb2">
+                        <span class="icon"><i class="fa fa-facebook"></i></span>
+                        <span class="has-text-weight-bold">
+                            @(LoginProvider.AuthenticationScheme)
+                        </span>
+                    </a>
+                    <span></span>
+                    <div class="container is-fluid has-text-centered">(You'll be redirected back to the marker you just placed after logging in)</div>
+                </div>
             </div>
         </div>
     } else {
@@ -51,6 +62,13 @@
                             <div class="control is-expanded">
                                 <input class="input" type="text" name="Name" placeholder="Charity Name" id="Charity-Name" />
                             </div>
+                            <div class="control">
+                                <ul>
+                                    <li>
+                                        Auto complete list <em>when</em>.
+                                    </li>
+                                </ul>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -78,10 +96,10 @@
                                         <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
                                             <span>
                                                 <span>
-                                                    <input type="checkbox" name="Doing" value="arrogant" />
+                                                    <input type="checkbox" name="Doing" value="blocking-path" />
                                                 </span>
                                                 <span>
-                                                    Arrogant
+                                                    Blocking the Path
                                                 </span>
                                             </span>
                                         </label>
@@ -149,10 +167,49 @@
         </div>
     }
 </div>
+<div id="info"></div>
+
 @section Scripts {
     <script type="text/javascript" src="~/js/Maps/map.js" asp-append-version="true"></script>
     <script type="text/javascript">
-            if ("geolocation" in navigator) {
+        
+        // iOS console logging, because I don't own a Mac to see console log
+        // Why the fuck is that the only way to actually get console.log?
+        (function () {
+            var docLog = document.querySelector("#info");
+            if (window.console && console.log) {
+                var ol = console.log;
+                var oe = console.error;
+                var ow = console.warn;
+                console.log = function () {
+                    var logDiv = document.createElement("div");
+                    logDiv.innerText = arguments[0];
+                    docLog.appendChild(logDiv);
+
+                    Array.prototype.unshift.call(arguments);
+                    ol.apply(this, arguments)
+                }
+                console.error = function () {
+                    var logDiv = document.createElement("div");
+                    logDiv.innerText = arguments[0];
+                    docLog.appendChild(logDiv);
+
+                    Array.prototype.unshift.call(arguments);
+                    oe.apply(this, arguments)
+                }
+
+                console.warn = function () {
+                    var logDiv = document.createElement("div");
+                    logDiv.innerText = arguments[0];
+                    docLog.appendChild(logDiv);
+
+                    Array.prototype.unshift.call(arguments);
+                    ow.apply(this, arguments)
+                }
+            }
+        })();
+        
+        if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(function (position) {
                     var cm = new ChugMap("@ViewData["MapBoxKey"]",
                         {

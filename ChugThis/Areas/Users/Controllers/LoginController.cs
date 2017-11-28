@@ -33,10 +33,10 @@ namespace ChugThis.Areas.Users.Controllers {
         // TODO: Sort out the routing and such for when a user denies access on the provider end.
         [Route("~/Login/{Provider}")]
         [UserFilter(RequiredLoggedInState: false)]
-        public async Task<IActionResult> LoginWithProvider(string error, string error_description, string Provider) {
+        public async Task<IActionResult> LoginWithProvider(string error, string error_description, string Provider, string RedirectUri = "/") {
             if(error == null && error_description == null) {
                 var challenge = HttpContext.ChallengeAsync(Provider, properties: new AuthenticationProperties {
-                    RedirectUri = "/"
+                    RedirectUri = RedirectUri
                 });
                 await challenge;
             }

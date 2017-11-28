@@ -26,6 +26,7 @@
     var _LoadedCharityMarkers = [];
     var _NewMarkerForm = document.querySelector(_Options.FormTarget);
     var _Scale = null;
+    var _MobileMode = false; // used to prevent click events on mobile
     //    var _MapBox = null;
 
     // Define some time saving stuff later because I don't like
@@ -131,6 +132,21 @@
 
             _MapLoaded = true;
 
+            try {
+
+                // This is kind of horrible, but it's done so if a user isn't logged in when they tap to add a marker,
+                // we redirect them to the form with where they tapped so they can add the marker they had planned with minimal fuss.
+                var match = RegExp('[?&]lnglat=([^&]*)').exec(window.location.search);
+                if (match) {
+                    var lnglat = decodeURIComponent(match[1].replace(/\+/g, ' ')).split(',');
+                    console.log(window.location.search);
+                    var queryStringGeo = ReturnCoordObject(lnglat[0], lnglat[1]);
+                    AddCharityMarker(queryStringGeo, "PageLoad");
+                }
+            } catch (e) {
+                console.error(e);
+            }
+
         });
 
         _MapBox.on("dragend", function (e) {
@@ -144,11 +160,17 @@
 
         // Trigger the add marker
         _MapBox.on("click", function (e) {
-            AddCharityMarker(ReturnCoordObject(e.lngLat.lng, e.lngLat.lat), e.originalEvent);
+            if (_MobileMode === false) {
+                AddCharityMarker(ReturnCoordObject(e.lngLat.lng, e.lngLat.lat), e.originalEvent);
+            }
         });
 
         _MapBox.on("touchstart", function (e) {
             _TouchDrag = false;
+            // If we're getting a touch start, we're on mobile, so set mobile mode to true to prevent map click events
+            if (_MobileMode === false) {
+                _MobileMode = true;
+            }
         });
         // Trigger the add marker for mobile
         _MapBox.on("touchend", function (e) {
@@ -299,9 +321,13 @@
 
     function AddCharityMarker(GeoObject, OriginalEvent) {
 
-        // Do nothing if the event came from anything other than the map canvas (eg the user clicked on the marker they already placed)
-        if (OriginalEvent.target.tagName !== "CANVAS") {
-            return;
+        // If the url has a lnglat query string param it means the user had attempted to add a marker but wasn't logged in.
+        // So lets say they did if the Original Event is the string PageLoad and treat it as if they had clicked the map.
+        if (OriginalEvent !== "PageLoad") {
+            // Do nothing if the event came from anything other than the map canvas (eg the user clicked on the marker they already placed)
+            if (OriginalEvent.target.tagName !== "CANVAS") {
+                return;
+            }
         }
 
         // remove the previously added temp marker
@@ -331,6 +357,12 @@
             var locationField = _NewMarkerForm.querySelector("#Charity-Location");
             locationDisplay.value = Geolocation.Longitude + " " + Geolocation.Latitude;
             locationField.value = Geolocation.Longitude + " " + Geolocation.Latitude;
+        } else {
+            var loginButton = _NewMarkerForm.querySelector("#new-marker-login");
+            var lnglatparam = "/?lnglat=" + Geolocation.Longitude + "," + Geolocation.Latitude;
+            var baseuri = loginButton.href;
+            // console.log(baseuri + "?RedirectUri=" + encodeURI(lnglatparam));
+            loginButton.href = baseuri + "?RedirectUri=" + encodeURI(lnglatparam);
         }
     }
 
