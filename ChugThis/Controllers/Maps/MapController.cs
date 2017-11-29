@@ -123,7 +123,7 @@ namespace Nulah.ChugThis.Controllers.Maps {
 
         /// <summary>
         ///     <para>
-        /// Returns a class ready for GeoJson, returning markers a radius around a given GeoLocation.
+        /// Returns a class ready for GeoJson, returning markers a radius in meters around a given GeoLocation.
         ///     </para>
         ///     <para>
         /// Returned markers will be sized based on steps from current hour, back to 3 hours ago, from 1.0, 0.75, 0.5; opacity will be 1 for all.
@@ -138,7 +138,7 @@ namespace Nulah.ChugThis.Controllers.Maps {
 
         /// <summary>
         ///     <para>
-        /// Returns a class ready for GeoJson, returning markers a radius around a given GeoLocation.
+        /// Returns a class ready for GeoJson, returning markers a radius in meters around a given GeoLocation.
         ///     </para>
         ///     <para>
         /// Returned markers will be sized based on steps from current hour, back to 3 hours ago, from 1.0, 0.75, 0.5; opacity will be 1 for all.
@@ -157,7 +157,7 @@ namespace Nulah.ChugThis.Controllers.Maps {
 
         /// <summary>
         ///     <para>
-        /// Returns a class ready for GeoJson, returning markers a radius around a given GeoLocation.
+        /// Returns a class ready for GeoJson, returning markers a radius in meters around a given GeoLocation.
         ///     </para>
         ///     <para>
         /// Returned markers will be sized based on steps from current hour, back to 3 hours ago, from 1.0, 0.75, 0.5; opacity will be 1 for all.
@@ -173,7 +173,7 @@ namespace Nulah.ChugThis.Controllers.Maps {
 
         /// <summary>
         ///     <para>
-        /// Returns a class ready for GeoJson, returning markers a radius around a given GeoLocation.
+        /// Returns a class ready for GeoJson, returning markers a radius in meters around a given GeoLocation.
         ///     </para>
         ///     <para>
         /// If ShowHistoric is true, then return all markers ever made, at a size of 0.5 (50% of their base size), with an opacity of 1. If left as default,
@@ -189,12 +189,10 @@ namespace Nulah.ChugThis.Controllers.Maps {
         /// <param name="MarkerCap">Defaults to 100. The total number of markers to return.</param>
         /// <returns></returns>
         private FeatureCollection GetMarkers(GeoLocation geoLocation, double Radius, bool ShowHistoric = false, int MarkerCap = 100) {
-            // Select all points in a radius around a location
-            var Around = _redis.GeoRadius(_allMarkersKey, geoLocation.Longitude, geoLocation.Latitude, Radius, GeoUnit.Meters)
-                .OrderBy(x => x.Distance)
-                .Take(MarkerCap);
 
-            if(Around.Count() == 0) {
+            var charityMarkers = GetCharityMarkers(geoLocation, Radius, MarkerCap);
+
+            if(charityMarkers.Count() == 0) {
 
                 return new FeatureCollection {
                     Type = "FeatureCollection",
@@ -202,23 +200,13 @@ namespace Nulah.ChugThis.Controllers.Maps {
                 };
             }
 
-            // Get the marker Ids (later I'll probably want their distance values, but for now this is all I'm interested in.
-            var MarkerIds = Around.Select(x => (double)x.Member)
-                .ToArray();
-
             List<Feature> featureMarkers = new List<Feature>();
             if(ShowHistoric == false) {
                 // snapshot the time the request was made
                 var utcNow = DateTime.UtcNow;
                 var threeHoursAgo = utcNow.AddHours(-3);
 
-                var markers = _redis.HashGet(_entriesMarkersKey, Array.ConvertAll(MarkerIds, item => (RedisValue)item))
-                    .Select(x => JsonConvert.DeserializeObject<CharityMarker>(x));
-
-                var MarkerStyles = GetCharityMarkerStyles(markers.Select(x => x.CharityId).Distinct().ToArray());
-
-                foreach(var marker in markers) {
-                    marker.Style = MarkerStyles[marker.CharityId];
+                foreach(var marker in charityMarkers) {
                     Feature f = marker.ToGeoJsonFeature();
                     var timeSince = marker.TimestampUTC - threeHoursAgo;
                     // this is awkward counting the reverse but uh...
@@ -241,10 +229,7 @@ namespace Nulah.ChugThis.Controllers.Maps {
                     featureMarkers.Add(f);
                 }
             } else {
-                var markers = _redis.HashGet(_entriesMarkersKey, Array.ConvertAll(MarkerIds, item => (RedisValue)item))
-                    .Select(x => JsonConvert.DeserializeObject<CharityMarker>(x)); // Filter out any markers that are older than 3 hours ago
-
-                foreach(var marker in markers) {
+                foreach(var marker in charityMarkers) {
                     Feature f = marker.ToGeoJsonFeature();
                     f.Properties.Size = 0.25;
                     featureMarkers.Add(f);
@@ -255,6 +240,59 @@ namespace Nulah.ChugThis.Controllers.Maps {
                 Type = "FeatureCollection",
                 Features = featureMarkers.ToArray()
             };
+        }
+
+        /// <summary>
+        ///     <para>
+        /// Returns full details of all charities around a point, with a radius in meters
+        ///     </para>
+        /// </summary>
+        /// <param name="geoLocation"></param>
+        /// <param name="Radius"></param>
+        /// <param name="MarkerCap"></param>
+        /// <returns></returns>
+        private List<CharityMarker> GetCharityMarkers(GeoLocation geoLocation, double Radius, int MarkerCap = 100, bool WithCharityDetails = false) {
+
+            List<CharityMarker> DetailedMarkers = new List<CharityMarker>();
+
+            // Get all markers around a point
+            var Around = _redis.GeoRadius(_allMarkersKey, geoLocation.Longitude, geoLocation.Latitude, Radius, GeoUnit.Meters)
+                .OrderBy(x => x.Distance)
+                .Take(MarkerCap);
+
+            // If we don't have any, return an empty list
+            if(Around.Count() == 0) {
+                return DetailedMarkers;
+            }
+
+            // Select all the marker Ids
+            var MarkerIds = Around
+                .Select(x => (double)x.Member)
+                .ToArray();
+
+            // Select the corresponding charity details from the details key
+            IEnumerable<CharityMarker> markers = _redis.HashGet(_entriesMarkersKey, Array.ConvertAll(MarkerIds, item => (RedisValue)item))
+                .Select(x => JsonConvert.DeserializeObject<CharityMarker>(x));
+
+            // create a distinct array of charity ids
+            long[] DistinctCharityIds = markers.Select(x => x.CharityId).Distinct().ToArray();
+
+            // Get all the styles for each charity
+            Dictionary<long, CharityStyle> MarkerStyles = GetCharityMarkerStyles(DistinctCharityIds);
+
+            if(WithCharityDetails == false) {
+                // Mash the above 2 together and return it
+                DetailedMarkers = markers
+                    .Select(x => {
+                        x.Style = MarkerStyles[x.CharityId];
+                        return x;
+                    })
+                    .ToList();
+            } else {
+               // var CharityDetails = 
+            }
+
+            return DetailedMarkers;
         }
 
         /// <summary>
@@ -270,7 +308,18 @@ namespace Nulah.ChugThis.Controllers.Maps {
                 .ToDictionary(x => x.CharityId, x => x);
             return markerStyles;
         }
-
+        /*
+        private List<Charity.Charity> GetCharities(long[] Charities) {
+            List<Task<HashEntry[]>> list = new List<Task<HashEntry[]>>();
+            List<RedisKey> keys; //Previously initialized list of keys
+            IBatch batch = _redis.CreateBatch();
+            foreach(var key in keys) {
+                var task = batch.HashGetAllAsync(key);
+                list.Add(task);
+            }
+            batch.Execute();
+        }
+        */
 
         /// <summary>
         ///     <para>

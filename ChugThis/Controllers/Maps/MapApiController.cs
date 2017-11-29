@@ -44,10 +44,35 @@ namespace Nulah.ChugThis.Controllers.Maps {
             return addedMarker;
         }
 
-
+        /// <summary>
+        ///     <para>
+        /// Returns a list of markers around a point.
+        ///     </para>
+        /// </summary>
+        /// <param name="Longitude"></param>
+        /// <param name="Latitude"></param>
+        /// <param name="Radius"></param>
+        /// <returns></returns>
         [HttpGet]
         [Route("~/Api/GetMarkers")]
         public FeatureCollection GetMarkersNearPoint(double Longitude, double Latitude, double Radius) {
+            var map = new MapController(_redis, _settings);
+            var markerFeatureCollection = map.GetMarkersNearPoint(new GeoLocation(Longitude, Latitude), Radius);
+            return markerFeatureCollection;
+        }
+
+        /// <summary>
+        ///     <para>
+        /// Returns a list of markers around a point with full details
+        ///     </para>
+        /// </summary>
+        /// <param name="Longitude"></param>
+        /// <param name="Latitude"></param>
+        /// <param name="Radius"></param>
+        /// <returns></returns>
+        [HttpGet]
+        [Route("~/Api/GetMarkerDetails")]
+        public FeatureCollection GetMarkerDetails(double Longitude, double Latitude, double Radius) {
             var map = new MapController(_redis, _settings);
             var markerFeatureCollection = map.GetMarkersNearPoint(new GeoLocation(Longitude, Latitude), Radius);
             return markerFeatureCollection;

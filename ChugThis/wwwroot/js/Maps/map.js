@@ -36,6 +36,14 @@
     var _MapBox = null;
     var _MapLoaded = false;
 
+    /*
+    // rough bounding box for Australia
+    var _MapBounds = [
+        [112.7197265625, -43.7869583731], // SW
+        [153.9404296875, -10.5580220134], // NE
+    ];
+    */
+
     // Define some time saving stuff later because I don't like
     // having to write bullshit when I can just call a method
     Object.defineProperties(Array.prototype,
@@ -113,7 +121,8 @@
             container: _Options.Container, // container id
             style: 'mapbox://styles/mapbox/streets-v9',
             center: [_UserLocation.Longitude, _UserLocation.Latitude], // starting position, [long,lat]
-            zoom: _Options.Zoom.StartZoom // starting zoom
+            zoom: _Options.Zoom.StartZoom, // starting zoom
+            //maxBounds: _MapBounds
         });
 
 
@@ -187,11 +196,13 @@
                 // we redirect them to the form with where they tapped so they can add the marker they had planned with minimal fuss.
                 var queryParams = UriHelper.GetQueryParams(window.location.search);
                 if (queryParams.Count > 0) {
-                    console.log(queryParams);
-                    /*
+                    PageBusyOverlay.Show("Putting you back to where you were...");
+                    var lnglat = queryParams["lnglat"].split(",");
+                    var zoom = queryParams["zoom"]
+                    console.log(lnglat);
                     var queryStringGeo = ReturnCoordObject(lnglat[0], lnglat[1]);
-                    AddCharityMarker(queryStringGeo, "PageLoad", _Options.Zoom.StartZoom);
-                    */
+                    AddCharityMarker(queryStringGeo, "PageLoad", zoom);
+
                 }
             } catch (e) {
                 console.error(e);
@@ -269,8 +280,8 @@
                 var R = 6371; // km
                 var dLat = toRad(lat2 - lat1);
                 var dLon = toRad(lon2 - lon1);
-                var lat1 = toRad(lat1);
-                var lat2 = toRad(lat2);
+                lat1 = toRad(lat1);
+                lat2 = toRad(lat2);
 
                 var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
                     Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
@@ -393,10 +404,10 @@
         console.log("adding Charity", GeoObject);
         _MapBox.flyTo({ center: [GeoObject.Longitude, GeoObject.Latitude], zoom: Zoom });
 
-        ActivateAddMarkerForm(GeoObject);
+        ActivateAddMarkerForm(GeoObject, Zoom);
     }
 
-    function ActivateAddMarkerForm(Geolocation) {
+    function ActivateAddMarkerForm(Geolocation, Zoom) {
         // Show the new marker form
         _NewMarkerForm.classList.remove("is-hidden");
         // If the user is logged in, we'll have a form loaded, so we'll prefill the long/lat
@@ -408,13 +419,16 @@
             InterceptFormSubmission();
         } else {
             var loginButton = _NewMarkerForm.querySelector("#new-marker-login");
-            var hash = GeoHash.Encode(Geolocation.Longitude, Geolocation.Latitude);
-            var originalHref = loginButton.href;
-            console.log(originalHref, hash, Geolocation);
-            //var lnglatparam = "/?lnglat=" + Geolocation.Longitude + "," + Geolocation.Latitude;
-            //var baseuri = loginButton.href;
-            // console.log(baseuri + "?RedirectUri=" + encodeURI(lnglatparam));
-            //loginButton.href = baseuri + "?RedirectUri=" + encodeURI(lnglatparam);
+
+            var redirectParams = UriHelper.GetQueryParams()
+                .Add("lnglat", Geolocation.Longitude + "," + Geolocation.Latitude)
+                .Add("zoom", Zoom);
+            var originalHref = UriHelper.GetQueryParams(loginButton.href);
+
+            originalHref.Add("RedirectUri", "/" + redirectParams.UriStringRaw());
+            console.log(originalHref, Geolocation);
+
+            loginButton.href = originalHref.UriString();
         }
     }
 
@@ -426,7 +440,7 @@
                 if (oReq.readyState === 4) {
                     resolve(JSON.parse(oReq.response));
                 }
-            }
+            };
 
             oReq.open("POST", "Api/Add/NewMarker");
             oReq.send(FormData);
@@ -488,6 +502,7 @@
     }
 
 
+    // Radius in meters
     function GetCharitiesNearLocation(CenterPoint, Radius) {
         return new Promise(function (resolve, reject) {
             var oReq = new XMLHttpRequest();
@@ -495,8 +510,22 @@
                 if (oReq.readyState === 4) {
                     resolve(JSON.parse(oReq.response));
                 }
-            }
+            };
             oReq.open("GET", "Api/GetMarkers?Longitude=" + CenterPoint.Longitude + "&Latitude=" + CenterPoint.Latitude + "&Radius=" + Radius);
+            oReq.send();
+        });
+    }
+
+    // Radius in meters
+    function LoadCharityDetailsFromLocation(CenterPoint, Radius) {
+        return new Promise(function (resolve, reject) {
+            var oReq = new XMLHttpRequest();
+            oReq.onreadystatechange = function () {
+                if (oReq.readyState === 4) {
+                    resolve(JSON.parse(oReq.response));
+                }
+            };
+            oReq.open("GET", "Api/GetMarkerDetails?Longitude=" + CenterPoint.Longitude + "&Latitude=" + CenterPoint.Latitude + "&Radius=" + Radius);
             oReq.send();
         });
     }

@@ -114,3 +114,13 @@ html.page-busy, html.page-error {
         #page-error-overlay .error .cutesy-error-shit {
             font-size: 2rem;
         }
+
+
+#marker-details {
+
+}
+    #marker-details .charity-entry {
+    }
+        #marker-details .charity-entry:not(:last-child) {
+            border-bottom: 1px solid hsl(0, 0%, 50%)
+        }

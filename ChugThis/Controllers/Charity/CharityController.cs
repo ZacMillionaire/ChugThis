@@ -15,15 +15,19 @@ namespace Nulah.ChugThis.Controllers.Charity {
         private readonly AppSettings _settings;
         private readonly string _charityBaseKey;
         private readonly string _charityStyleLookupKey;
+        private readonly string _charityIndexKey;
 
         private const string CHARITY_ID_COUNTER = "ID:Charity";
+        private const string CHARITY_INDEX = "Index:Charity";
         private const string CHARITY_MARKER_STYLE_TABLE = "Charity:MarkerStyles";
 
         public CharityController(IDatabase Redis, AppSettings Settings) {
             _redis = Redis;
             _settings = Settings;
+
             _charityBaseKey = $"{Settings.ConnectionStrings.Redis.BaseKey}Charity";
             _charityStyleLookupKey = $"{Settings.ConnectionStrings.Redis.BaseKey}{CHARITY_MARKER_STYLE_TABLE}";
+            _charityIndexKey = $"{Settings.ConnectionStrings.Redis.BaseKey}{CHARITY_INDEX}";
         }
 
         public string CharityBaseKey
@@ -49,7 +53,10 @@ namespace Nulah.ChugThis.Controllers.Charity {
             // The race condition is unlikely, but hey, I get to pretend to know a thing.
             // This validates my degree.
 
-            var charityKey = $"{_charityBaseKey}:{CharityName}";
+            string charityNameKey = CharityName.ToLower();
+            charityNameKey = System.Text.RegularExpressions.Regex.Replace(charityNameKey, @"[^\w\d]+", "");
+
+            var charityKey = $"{_charityBaseKey}:{charityNameKey}";
 
             // Doublecheck to make sure it didn't get added
             if(_redis.HashExists(charityKey, "Profile")) {
@@ -69,8 +76,26 @@ namespace Nulah.ChugThis.Controllers.Charity {
                 CreateOrUpdateCharityStyle(NewCharityId, newCharityEntry.Style);
 
                 _redis.HashSet(charityKey, "Profile", newCharityEntry.ToString());
+                AddCharityToIndex(NewCharityId, charityNameKey);
                 return newCharityEntry;
             }
+        }
+
+        /// <summary>
+        ///     <para>
+        /// Adds a charity name to the index
+        ///     </para>
+        /// </summary>
+        /// <param name="CharityId"></param>
+        /// <param name="CharityName"></param>
+        private void AddCharityToIndex(long CharityId, string CharityName) {
+            // this is kind of a dumb way to do this, the charity Id could be the charities key,
+            // however, doing it the current way ensures that duplicates don't exist.
+            _redis.HashSet(_charityIndexKey, CharityId, CharityName);
+        }
+
+        private void RemoveCharityFromIndex(long CharityId) {
+            throw new NotImplementedException("Removing from charity index not supported");
         }
 
         /// <summary>

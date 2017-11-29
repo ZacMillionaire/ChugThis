@@ -132,9 +132,9 @@ var PageBusyOverlay = {
 // Is this overkill? probably. But I fucking hate having to fuck around with query params without
 // something to do it for me.
 var UriHelper = {
-    NotSupportedException: function (Message) {
+    Exception: function (Type, Message) {
         return {
-            Name: "NotSupportedException",
+            Type: Type,
             Message: Message
         };
     },
@@ -146,9 +146,30 @@ var UriHelper = {
                 UriString: function () {
                     var s = [];
                     for (var i in this) {
-                        s.push(i + "=" + encodeURIComponent(this[i]));
+                        if (this[i] !== undefined) {
+                            s.push(i + "=" + encodeURIComponent(this[i]));
+                        }
                     }
                     return this.BaseUri + "?" + s.join("&");
+                },
+                UriStringRaw: function () {
+                    var s = [];
+                    for (var i in this) {
+                        if (this[i] !== undefined) {
+                            s.push(i + "=" + this[i]);
+                        }
+                    }
+                    return this.BaseUri + "?" + s.join("&");
+                },
+                Add: function (Key, Value) {
+                    this[Key] = Value;
+                    this.Count += 1;
+                    return this;
+                },
+                Remove: function (Key) {
+                    delete this[Key];
+                    this.Count -= 1;
+                    return this;
                 }
             };
 
@@ -160,10 +181,23 @@ var UriHelper = {
                     "UriString": {
                         enumerable: false
                     },
+                    "UriStringRaw": {
+                        enumerable: false
+                    },
                     "BaseUri": {
+                        enumerable: false
+                    },
+                    "Add": {
+                        enumerable: false
+                    },
+                    "Remove": {
                         enumerable: false
                     }
                 });
+
+            if (Uri === undefined || Uri === null) {
+                return params;
+            }
 
             var UriSplit = Uri.split('?');
 
@@ -178,13 +212,14 @@ var UriHelper = {
                             params[match[1]] = match[2];
                             params.Count += 1;
                         } else {
-                            throw new this.NotSupportedException("Non-Unique query parameters (non-unique param: '" + match[1] + "') are currently not supported.");
+                            throw new this.Exception("NotSupportedException", "Non-Unique query parameters (non-unique param: '" + match[1] + "') are currently not supported.");
                         }
                     }
                 }
             }
             return params;
         } catch (Exception) {
+            console.error(Exception);
             console.error("Error parsing Uri query string:", Exception.Name + ":", Exception.Message);
         }
     }
