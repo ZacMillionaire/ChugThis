@@ -69,7 +69,7 @@ namespace Nulah.ChugThis.Controllers.Charity {
                     Style = new CharityStyle {
                         CharityId = NewCharityId,
                         PrimaryColour = GetHexColourFromCharityName(CharityName),
-                        SecondaryColour = GetHexColourFromCharityName(String.Join("",CharityName.Reverse()))
+                        SecondaryColour = GetHexColourFromCharityName(String.Join("", CharityName.Reverse()))
                     },
                     isNew = true
                 };
@@ -178,7 +178,10 @@ namespace Nulah.ChugThis.Controllers.Charity {
         /// <param name="MarkerId"></param>
         public void AddMarkerToCharity(string CharityName, long MarkerId) {
 
-            var charityKey = $"{CharityBaseKey}:{CharityName}";
+            string charityNameKey = CharityName.ToLower();
+            charityNameKey = System.Text.RegularExpressions.Regex.Replace(charityNameKey, @"[^\w\d]+", "");
+
+            var charityKey = $"{CharityBaseKey}:{charityNameKey}";
             List<long> MarkerSet;
 
             // check to see if the hash exists
