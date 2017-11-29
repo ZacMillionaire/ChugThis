@@ -72,9 +72,9 @@ namespace Nulah.ChugThis.Controllers.Maps {
         /// <returns></returns>
         [HttpGet]
         [Route("~/Api/GetMarkerDetails")]
-        public FeatureCollection GetMarkerDetails(double Longitude, double Latitude, double Radius) {
+        public List<CharityMarker> GetMarkerDetails(double Longitude, double Latitude, double Radius) {
             var map = new MapController(_redis, _settings);
-            var markerFeatureCollection = map.GetMarkersNearPoint(new GeoLocation(Longitude, Latitude), Radius);
+            var markerFeatureCollection = map.GetCharityDetailsNearPoint(new GeoLocation(Longitude, Latitude), Radius);
             return markerFeatureCollection;
         }
     }

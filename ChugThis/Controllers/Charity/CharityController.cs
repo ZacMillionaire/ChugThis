@@ -19,7 +19,7 @@ namespace Nulah.ChugThis.Controllers.Charity {
 
         private const string CHARITY_ID_COUNTER = "ID:Charity";
         private const string CHARITY_INDEX = "Index:Charity";
-        private const string CHARITY_MARKER_STYLE_TABLE = "Charity:MarkerStyles";
+        private const string CHARITY_MARKER_STYLE_TABLE = "Markers:Styles";
 
         public CharityController(IDatabase Redis, AppSettings Settings) {
             _redis = Redis;
@@ -68,7 +68,8 @@ namespace Nulah.ChugThis.Controllers.Charity {
                     Name = CharityName,
                     Style = new CharityStyle {
                         CharityId = NewCharityId,
-                        PrimaryColour = GetHexColourFromCharityName(CharityName)
+                        PrimaryColour = GetHexColourFromCharityName(CharityName),
+                        SecondaryColour = GetHexColourFromCharityName(String.Join("",CharityName.Reverse()))
                     },
                     isNew = true
                 };
@@ -120,7 +121,8 @@ namespace Nulah.ChugThis.Controllers.Charity {
         /// <returns></returns>
         private string GetHexColourFromCharityName(string CharityName) {
             var charityBytes = CharityName.GetHashCode() & 0x00FFFFFF;
-            return charityBytes.ToString("x2");
+            var hexColour = charityBytes.ToString("x2");
+            return hexColour.PadRight(6, '0');
         }
 
         /// <summary>
@@ -193,6 +195,25 @@ namespace Nulah.ChugThis.Controllers.Charity {
             }
             // add the marker set to the hash
             _redis.HashSet(charityKey, "Markers", JsonConvert.SerializeObject(MarkerSet));
+        }
+
+        public async Task<List<Charity>> GetCharitiesByIds(long[] CharityIds) {
+
+            var names = _redis.HashGet(_charityIndexKey, Array.ConvertAll(CharityIds, x => (RedisValue)x))
+                .Select(x => (string)x);
+
+            List<Task<RedisValue>> list = new List<Task<RedisValue>>();
+            RedisValue[] CharityNames = Array.ConvertAll(names.ToArray(), x => (RedisValue)x);
+            IBatch batch = _redis.CreateBatch();
+            foreach(var Name in CharityNames) {
+                var task = batch.HashGetAsync($"{_charityBaseKey}:{Name}", "Profile");
+                list.Add(task);
+            }
+            batch.Execute();
+
+            await Task.WhenAll(list);
+
+            return list.Select(x => JsonConvert.DeserializeObject<Charity>(x.Result)).ToList();
         }
 
     }

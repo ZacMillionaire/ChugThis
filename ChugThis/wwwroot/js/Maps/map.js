@@ -262,6 +262,7 @@
     }
 
     function RenderCharities(GeoLoc) {
+
         // fuck this is messy
         return new Promise(function (resolve, reject) {
             var bbox = _MapBox.getContainer().getBoundingClientRect();
@@ -304,6 +305,10 @@
 
                 DeactivateAddMarkerForm();
 
+                LoadCharityDetailsFromLocation(ReturnCoordObject(Marker.geometry.coordinates[0], Marker.geometry.coordinates[1]), 50).then(function (details) {
+                    RenderDetailList(details);
+                });
+
                 //var infobox = document.getElementById("info");
                 //infobox.innerHTML = JSON.stringify(Marker);
                 try {
@@ -314,8 +319,6 @@
                 }
                 //Event.stopPropagation(); // prevent any other things from firing
             }
-
-
 
             GetCharitiesNearLocation(GeoLoc, diagonalDistance).then(function (GeoJsonResult) {
 
@@ -379,6 +382,9 @@
     }
 
     function AddCharityMarker(GeoObject, OriginalEvent, Zoom) {
+
+        // clear out the marker details list if previously filled
+        UnrenderDetailList();
 
         // If the url has a lnglat query string param it means the user had attempted to add a marker but wasn't logged in.
         // So lets say they did if the Original Event is the string PageLoad and treat it as if they had clicked the map.
@@ -528,6 +534,96 @@
             oReq.open("GET", "Api/GetMarkerDetails?Longitude=" + CenterPoint.Longitude + "&Latitude=" + CenterPoint.Latitude + "&Radius=" + Radius);
             oReq.send();
         });
+    }
+
+    function RenderDetailList(CharitiesFound) {
+        console.log(CharitiesFound);
+
+        var markerDetails = document.querySelector("#marker-details");
+        markerDetails.innerHTML = null;
+
+        // Can't wait to just do this all with Vue later on.
+        // Until then why don't I just do it manually and punch myself in the dick instead.
+        for (var i in CharitiesFound) {
+
+            var _charityData = CharitiesFound[i];
+            var _charityDetails = _charityData.charityDetails;
+
+            var charityParent = document.createElement("div");
+            charityParent.classList.add("columns", "is-gapless", "is-marginless", "charity-entry");
+
+            // Charity Icon
+            var charityIcon = document.createElement("figure");
+            charityIcon.classList.add("image", "is-64x64");
+            charityIcon.style.backgroundColor = "#" + _charityDetails.style.primaryColour;
+            // Charity Icon container
+            var iconDiv = document.createElement("div");
+            iconDiv.classList.add("column", "is-narrow");
+            // Append the icon to it's container
+            iconDiv.appendChild(charityIcon);
+
+            // append the icon container to the charity div
+            charityParent.appendChild(iconDiv);
+
+            // Charity details list: Name, Doing/rating, distance, etc...
+            // Details Container
+            var detailsDiv = document.createElement("div");
+            detailsDiv.classList.add("column");
+            // Charity name header
+            var charityName = document.createElement("h3");
+            charityName.classList.add("title", "is-5", "is-marginless");
+            charityName.innerText = _charityDetails.name;
+            // Append the name to the details container
+            detailsDiv.appendChild(charityName);
+
+            // Doing/Rating, distance etc container
+            var charityDetails = document.createElement("div");
+            charityDetails.classList.add("columns", "is-gapless");
+
+            // What they were tagged as
+            var doingContainer = document.createElement("div");
+            doingContainer.classList.add("column");
+            // if we have anything tagged under doing, loop over and add them
+            if (_charityData.doing.length > 0) {
+                for (var i = 0; i < _charityData.doing.length; i++) {
+                    var doingTag = document.createElement("span");
+                    doingTag.innerHTML = _charityData.doing[i];
+                    doingContainer.appendChild(doingTag);
+                }
+            }
+            // Append it to the charity details container
+            charityDetails.appendChild(doingContainer);
+
+            // Distance from selected marker container
+            var distanceContainer = document.createElement("div");
+            distanceContainer.classList.add("column");
+            var distanceInMeters = document.createElement("span");
+            // The first marker will usually have a distance less than 1m, based on geohashing the location previously.
+            // So there's a very small chance that one day, someone will click a marker and it's distance to itself will be 0!
+            // But I don't really care about that small chance (yet), so treat any marker with a distance to itself less than 1 to be itself.
+            if (_charityData.distance < 1) {
+                distanceInMeters.innerHTML = "Selected marker";
+            } else {
+                distanceInMeters.innerHTML = "Distance from selected marker: " + _charityData.distance + "m";
+            }
+            distanceContainer.appendChild(distanceInMeters);
+            // append the distance container to the details container
+            charityDetails.appendChild(distanceContainer);
+
+            // append the charity details to the details container
+            detailsDiv.appendChild(charityDetails);
+
+            // Append the details to the charity div
+            charityParent.appendChild(detailsDiv);
+
+            markerDetails.appendChild(charityParent);
+        }
+    }
+
+    // Super advanced function here!
+    function UnrenderDetailList() {
+        var markerDetails = document.querySelector("#marker-details");
+        markerDetails.innerHTML = null;
     }
 
     return {

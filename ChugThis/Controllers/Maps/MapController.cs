@@ -136,6 +136,13 @@ namespace Nulah.ChugThis.Controllers.Maps {
             return GetMarkers(geoLocation, Radius, false);
         }
 
+        public List<CharityMarker> GetCharityDetailsNearPoint(GeoLocation geoLocation, double Radius) {
+            var markerData = GetCharityMarkers(geoLocation, Radius);
+            var charities = GetCharities(markerData.Select(x => x.CharityId).Distinct().ToArray()).Result;
+            markerData.ForEach(x => x.CharityDetails = charities.First(y => y.Id == x.CharityId));
+            return markerData;
+        }
+
         /// <summary>
         ///     <para>
         /// Returns a class ready for GeoJson, returning markers a radius in meters around a given GeoLocation.
@@ -251,7 +258,7 @@ namespace Nulah.ChugThis.Controllers.Maps {
         /// <param name="Radius"></param>
         /// <param name="MarkerCap"></param>
         /// <returns></returns>
-        private List<CharityMarker> GetCharityMarkers(GeoLocation geoLocation, double Radius, int MarkerCap = 100, bool WithCharityDetails = false) {
+        private List<CharityMarker> GetCharityMarkers(GeoLocation geoLocation, double Radius, int MarkerCap = 100) {
 
             List<CharityMarker> DetailedMarkers = new List<CharityMarker>();
 
@@ -265,32 +272,34 @@ namespace Nulah.ChugThis.Controllers.Maps {
                 return DetailedMarkers;
             }
 
-            // Select all the marker Ids
+            // Select all the marker Ids and their distances from the given location
             var MarkerIds = Around
-                .Select(x => (double)x.Member)
-                .ToArray();
+                .Select(x => new {
+                    Id = (double)x.Member,
+                    Dist = (double)x.Distance // in meters
+                })
+                .ToDictionary(x => x.Id, x => x.Dist);
 
             // Select the corresponding charity details from the details key
-            IEnumerable<CharityMarker> markers = _redis.HashGet(_entriesMarkersKey, Array.ConvertAll(MarkerIds, item => (RedisValue)item))
+            IEnumerable<CharityMarker> markers = _redis.HashGet(_entriesMarkersKey, Array.ConvertAll(Around.Select(x => x.Member).ToArray(), item => (RedisValue)item))
                 .Select(x => JsonConvert.DeserializeObject<CharityMarker>(x));
 
             // create a distinct array of charity ids
-            long[] DistinctCharityIds = markers.Select(x => x.CharityId).Distinct().ToArray();
+            long[] DistinctCharityIds = markers.Select(x => x.CharityId)
+                .Distinct()
+                .ToArray();
 
             // Get all the styles for each charity
             Dictionary<long, CharityStyle> MarkerStyles = GetCharityMarkerStyles(DistinctCharityIds);
 
-            if(WithCharityDetails == false) {
-                // Mash the above 2 together and return it
-                DetailedMarkers = markers
-                    .Select(x => {
-                        x.Style = MarkerStyles[x.CharityId];
-                        return x;
-                    })
-                    .ToList();
-            } else {
-               // var CharityDetails = 
-            }
+            // Mash the above 2 together and return it
+            DetailedMarkers = markers
+                .Select(x => {
+                    x.Style = MarkerStyles[x.CharityId];
+                    x.Distance = MarkerIds[x.CharityId];
+                    return x;
+                })
+                .ToList();
 
             return DetailedMarkers;
         }
@@ -308,18 +317,12 @@ namespace Nulah.ChugThis.Controllers.Maps {
                 .ToDictionary(x => x.CharityId, x => x);
             return markerStyles;
         }
-        /*
-        private List<Charity.Charity> GetCharities(long[] Charities) {
-            List<Task<HashEntry[]>> list = new List<Task<HashEntry[]>>();
-            List<RedisKey> keys; //Previously initialized list of keys
-            IBatch batch = _redis.CreateBatch();
-            foreach(var key in keys) {
-                var task = batch.HashGetAllAsync(key);
-                list.Add(task);
-            }
-            batch.Execute();
+
+        private Task<List<Charity.Charity>> GetCharities(long[] Charities) {
+            var charityController = new CharityController(_redis, _settings);
+            return charityController.GetCharitiesByIds(Charities);
         }
-        */
+
 
         /// <summary>
         ///     <para>
@@ -376,10 +379,16 @@ namespace Nulah.ChugThis.Controllers.Maps {
         // The users time is also in UTC, for what its worth
         public DateTime TimestampUTC { get; set; }
         public string[] Doing { get; set; }
+        /// <summary>
+        /// In meters
+        /// </summary>
+        public double Distance { get; set; }
 
         [JsonIgnore]
         // Pulled from charities when needed
         public CharityStyle Style { get; set; }
+
+        public Charity.Charity CharityDetails { get; set; }
 
         /// <summary>
         ///     <para>
