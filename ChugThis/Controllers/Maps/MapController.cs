@@ -285,7 +285,7 @@ namespace Nulah.ChugThis.Controllers.Maps {
                 .Select(x => JsonConvert.DeserializeObject<CharityMarker>(x));
 
             // create a distinct array of charity ids
-            long[] DistinctCharityIds = markers.Select(x => x.Id)
+            long[] DistinctCharityIds = markers.Select(x => x.CharityId)
                 .Distinct()
                 .ToArray();
 
@@ -296,7 +296,7 @@ namespace Nulah.ChugThis.Controllers.Maps {
             DetailedMarkers = markers
                 .Select(x => {
                     x.Style = MarkerStyles[x.CharityId];
-                    x.Distance = MarkerIds[x.CharityId];
+                    x.Distance = MarkerIds[x.Id];
                     return x;
                 })
                 .ToList();
