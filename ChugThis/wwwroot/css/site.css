@@ -129,6 +129,31 @@ html.page-busy, html.page-error {
             border-bottom: 1px solid hsl(0, 0%, 50%)
         }
 
+        #marker-details .charity-entry .charity-icon {
+        }
+
+        #marker-details .charity-entry .charity-details-container {
+        }
+
+            #marker-details .charity-entry .charity-details-container .charity-name {
+                margin: 0.25rem;
+            }
+
+            #marker-details .charity-entry .charity-details-container .charity-details {
+            }
+
+                #marker-details .charity-entry .charity-details-container .charity-details .last-seen {
+                    margin-left: 0.25rem;
+                }
+
+                    #marker-details .charity-entry .charity-details-container .charity-details .last-seen .tagged-time {
+                        margin-left: 0.25rem;
+                    }
+
+                #marker-details .charity-entry .charity-details-container .charity-details .marker-distance {
+                    text-align: right;
+                }
+
 .autocomplete ul:empty {
     display: none;
 }
@@ -141,6 +166,7 @@ html.page-busy, html.page-error {
     .autocomplete ul li {
         padding: 0.5rem;
     }
+
         .autocomplete ul li:hover {
             background-color: hsl(0, 0%, 95%);
         }

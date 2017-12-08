@@ -560,7 +560,7 @@
             charityIcon.style.backgroundColor = "#" + _charityDetails.style.primaryColour;
             // Charity Icon container
             var iconDiv = document.createElement("div");
-            iconDiv.classList.add("column", "is-narrow");
+            iconDiv.classList.add("column", "is-narrow", "charity-icon");
             // Append the icon to it's container
             iconDiv.appendChild(charityIcon);
 
@@ -570,18 +570,19 @@
             // Charity details list: Name, Doing/rating, distance, etc...
             // Details Container
             var detailsDiv = document.createElement("div");
-            detailsDiv.classList.add("column");
+            detailsDiv.classList.add("column", "charity-details-container");
             // Charity name header
             var charityName = document.createElement("h3");
-            charityName.classList.add("title", "is-5", "is-marginless");
+            charityName.classList.add("title", "is-5", "charity-name");
             charityName.innerText = _charityDetails.name;
             // Append the name to the details container
             detailsDiv.appendChild(charityName);
 
             // Doing/Rating, distance etc container
             var charityDetails = document.createElement("div");
-            charityDetails.classList.add("columns", "is-gapless");
+            charityDetails.classList.add("columns", "is-gapless", "charity-details");
 
+            /*
             // What they were tagged as
             var doingContainer = document.createElement("div");
             doingContainer.classList.add("column");
@@ -595,10 +596,49 @@
             }
             // Append it to the charity details container
             charityDetails.appendChild(doingContainer);
+            */
+
+            // How long ago the charity was seen
+            var lastSeenContainer = document.createElement("div");
+            lastSeenContainer.classList.add("column", "last-seen");
+
+            var timestamp = /(\d+):(\d+):(\d+).(\d+)/g.exec(_charityData.lastSeen);
+
+            var ts = {
+                Minutes : parseInt(timestamp[2]),
+                Hours : parseInt(timestamp[1])
+            };
+
+            var timeTag = document.createElement("span");
+            // add an icon
+            var timeIcon = document.createElement("i");
+            timeIcon.classList.add("fa", "fa-clock-o");
+            timeTag.appendChild(timeIcon);
+
+            var timespan = document.createElement("span");
+            timespan.classList.add("tagged-time");
+            timespan.innerHTML = "Tagged ";
+            if (ts.Hours > 0) {
+                timespan.innerHTML += ts.Hours + (ts.Hours === 1 ? " hour": " hours ");
+            }
+
+            if (ts.Minutes > 0) {
+                timespan.innerHTML += ts.Minutes + (ts.Minutes === 1 ? " minute" : " minutes") + " ago";
+            } else {
+                timespan.innerHTML += " just now";
+            }
+
+            timeTag.appendChild(timespan);
+
+            lastSeenContainer.appendChild(timeTag);
+
+            // Append it to the charity details container
+            charityDetails.appendChild(lastSeenContainer);
+
 
             // Distance from selected marker container
             var distanceContainer = document.createElement("div");
-            distanceContainer.classList.add("column");
+            distanceContainer.classList.add("column", "marker-distance");
             var distanceInMeters = document.createElement("span");
             // The first marker will usually have a distance less than 1m, based on geohashing the location previously.
             // So there's a very small chance that one day, someone will click a marker and it's distance to itself will be 0!

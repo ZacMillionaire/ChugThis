@@ -26,6 +26,8 @@ namespace Nulah.ChugThis.Controllers.Maps {
         /// </summary>
         private readonly string _entriesMarkersKey;
 
+        private readonly DateTime _MarkerAgeLimit;
+
         private const string MARKER_ID_COUNTER = "ID:Markers";
 
         public MapController(IDatabase Redis, AppSettings Settings) {
@@ -34,6 +36,11 @@ namespace Nulah.ChugThis.Controllers.Maps {
             _baseMarkerKey = $"{_settings.ConnectionStrings.Redis.BaseKey}Markers";
             _allMarkersKey = $"{_baseMarkerKey}:All:GeoMarkers";
             _entriesMarkersKey = $"{_baseMarkerKey}:All:MarkerDetails";
+
+            // limit markers to an age of 5 hours
+            _MarkerAgeLimit = DateTime.UtcNow.AddHours(-5);
+
+
         }
 
         /// <summary>
@@ -139,7 +146,12 @@ namespace Nulah.ChugThis.Controllers.Maps {
         public List<CharityMarker> GetCharityDetailsNearPoint(GeoLocation geoLocation, double Radius) {
             var markerData = GetCharityMarkers(geoLocation, Radius);
             var charities = GetCharities(markerData.Select(x => x.CharityId).Distinct().ToArray()).Result;
-            markerData.ForEach(x => x.CharityDetails = charities.First(y => y.Id == x.CharityId));
+            // merge details to markers
+            // and 0 out doing - we aren't displaying this for the near future.
+            markerData.ForEach(x => {
+                x.CharityDetails = charities.First(y => y.Id == x.CharityId);
+                x.Doing = new string[0];
+            });
             return markerData;
         }
 
@@ -197,7 +209,8 @@ namespace Nulah.ChugThis.Controllers.Maps {
         /// <returns></returns>
         private FeatureCollection GetMarkers(GeoLocation geoLocation, double Radius, bool ShowHistoric = false, int MarkerCap = 100) {
 
-            var charityMarkers = GetCharityMarkers(geoLocation, Radius, MarkerCap);
+            // Cap markers by age for now
+            var charityMarkers = GetCharityMarkers(geoLocation, Radius, MarkerCap).Where(x => x.TimestampUTC >= _MarkerAgeLimit);
 
             if(charityMarkers.Count() == 0) {
 
@@ -236,11 +249,13 @@ namespace Nulah.ChugThis.Controllers.Maps {
                     featureMarkers.Add(f);
                 }
             } else {
+                throw new NotSupportedException("Historic markers not supported currently.");
+                /*
                 foreach(var marker in charityMarkers) {
                     Feature f = marker.ToGeoJsonFeature();
                     f.Properties.Size = 0.25;
                     featureMarkers.Add(f);
-                }
+                }*/
             }
 
             return new FeatureCollection {
@@ -280,9 +295,10 @@ namespace Nulah.ChugThis.Controllers.Maps {
                 })
                 .ToDictionary(x => x.Id, x => x.Dist);
 
-            // Select the corresponding charity details from the details key
+            // Select the corresponding charity details from the details key, and limit by max marker age
             IEnumerable<CharityMarker> markers = _redis.HashGet(_entriesMarkersKey, Array.ConvertAll(Around.Select(x => x.Member).ToArray(), item => (RedisValue)item))
-                .Select(x => JsonConvert.DeserializeObject<CharityMarker>(x));
+                .Select(x => JsonConvert.DeserializeObject<CharityMarker>(x))
+                .Where(x => x.TimestampUTC >= _MarkerAgeLimit);
 
             // create a distinct array of charity ids
             long[] DistinctCharityIds = markers.Select(x => x.CharityId)
@@ -297,6 +313,7 @@ namespace Nulah.ChugThis.Controllers.Maps {
                 .Select(x => {
                     x.Style = MarkerStyles[x.CharityId];
                     x.Distance = MarkerIds[x.Id];
+                    x.LastSeen = DateTime.UtcNow - x.TimestampUTC;
                     return x;
                 })
                 .ToList();
@@ -378,6 +395,12 @@ namespace Nulah.ChugThis.Controllers.Maps {
         // I'll be using this to filter within a sliding timespan of -1 hour of the users time
         // The users time is also in UTC, for what its worth
         public DateTime TimestampUTC { get; set; }
+
+        /// <summary>
+        /// Time last seen
+        /// </summary>
+        public TimeSpan LastSeen { get; set; }
+
         public string[] Doing { get; set; }
         /// <summary>
         /// In meters
