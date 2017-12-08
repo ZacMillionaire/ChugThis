@@ -119,7 +119,18 @@ var PageBusyOverlay = {
 
         var htmlRoot = document.querySelector("html");
         var pageError = document.querySelector("#page-error-overlay");
-        pageError.querySelector("#error-text").innerHTML = ErrorMessage;
+
+        if (!Array.isArray(ErrorMessage)) {
+            pageError.querySelector("#error-text").innerHTML = ErrorMessage;
+        } else {
+            var e = [];
+            for (var i = 0; i < ErrorMessage.length; i++) {
+                e.push(ErrorMessage[i]);
+            }
+            console.log(e.join("<br />"));
+            pageError.querySelector("#error-text").innerHTML = e.join("<br />");
+        }
+
         if (!htmlRoot.classList.contains("page-error")) {
             htmlRoot.classList.add("page-error");
             if (!pageError.classList.contains("show")) {
@@ -224,3 +235,50 @@ var UriHelper = {
         }
     }
 };
+
+// Debounce code From underscore.js
+// http://underscorejs.org/docs/underscore.html#section-159
+var DateNow = Date.now || function () {
+    return new Date().getTime();
+};
+// http://underscorejs.org/docs/underscore.html#section-83
+var Debounce = function (func, wait, immediate) {
+    var timeout, args, context, timestamp, result;
+
+    var later = function () {
+        var last = DateNow - timestamp;
+
+        if (last < wait && last >= 0) {
+            timeout = setTimeout(later, wait - last);
+        } else {
+            timeout = null;
+            if (!immediate) {
+                result = func.apply(context, args);
+                if (!timeout) context = args = null;
+            }
+        }
+    };
+
+    return function () {
+        context = this;
+        args = arguments;
+        timestamp = DateNow;
+        var callNow = immediate && !timeout;
+        if (!timeout) timeout = setTimeout(later, wait);
+        if (callNow) {
+            result = func.apply(context, args);
+            context = args = null;
+        }
+
+        return result;
+    };
+};
+
+
+function BindOnce(DomElement, EventToBind, FuncName, Func) {
+    if (DomElement[FuncName] === undefined) {
+        //console.log("binding " + FuncName + " to " + EventToBind + " on " + DomElement.attributes.id.value + " once");
+        DomElement.addEventListener(EventToBind, Func);
+        DomElement[FuncName] = "bound";
+    }
+}

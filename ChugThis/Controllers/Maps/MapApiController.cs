@@ -8,6 +8,7 @@ using StackExchange.Redis;
 using Nulah.ChugThis.Models;
 using Nulah.ChugThis.Models.Users;
 using Nulah.ChugThis.Models.Geo;
+using Nulah.ChugThis.Filters;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -25,6 +26,7 @@ namespace Nulah.ChugThis.Controllers.Maps {
 
         [HttpPost]
         [Route("~/Add/NewMarker")]
+        [UserFilter(RequiredLoggedInState: true)]
         [ValidateAntiForgeryToken]
         public IActionResult AddNewCharityMarkerNoScript([FromForm]NewCharityMarker FormData) {
             // The user somehow gets the form to display, and fill out a location without...javascript...
@@ -36,6 +38,7 @@ namespace Nulah.ChugThis.Controllers.Maps {
 
         [HttpPost]
         [Route("~/Api/Add/NewMarker")]
+        [UserFilter(RequiredLoggedInState: true)]
         [ValidateAntiForgeryToken]
         public Feature AddNewCharityMarker([FromForm]NewCharityMarker FormData) {
             var user = (PublicUser)ViewData["User"];

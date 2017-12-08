@@ -109,6 +109,9 @@ html.page-busy, html.page-error {
         color: #fff;
         text-align: center;
         background-color: hsla(0, 100%, 50%,0.25);
+        pointer-events: auto;
+        -ms-touch-action: auto;
+        touch-action: auto;
     }
 
         #page-error-overlay .error .cutesy-error-shit {
@@ -117,10 +120,31 @@ html.page-busy, html.page-error {
 
 
 #marker-details {
-
 }
+
     #marker-details .charity-entry {
     }
+
         #marker-details .charity-entry:not(:last-child) {
             border-bottom: 1px solid hsl(0, 0%, 50%)
+        }
+
+.autocomplete ul:empty {
+    display: none;
+}
+
+.autocomplete ul {
+    border: 1px solid hsl(0, 0%, 50%);
+    border-top: none;
+}
+
+    .autocomplete ul li {
+        padding: 0.5rem;
+    }
+        .autocomplete ul li:hover {
+            background-color: hsl(0, 0%, 95%);
+        }
+
+        .autocomplete ul li:not(:last-child) {
+            border-bottom: 1px solid hsl(0, 0%, 75%);
         }

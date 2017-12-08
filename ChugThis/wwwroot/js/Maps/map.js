@@ -403,6 +403,8 @@
         var el = document.createElement('div');
         el.className = 'add-charity-marker';
 
+        // TODO: tapping the add marker marker again should cancel it
+
         _TempCharityMarker = new mapboxgl.Marker(el)
             .setLngLat([GeoObject.Longitude, GeoObject.Latitude])
             .addTo(_MapBox);
@@ -420,8 +422,12 @@
         if (_NewMarkerForm.querySelector("form") !== null) {
             var locationDisplay = _NewMarkerForm.querySelector("#Location-Display");
             var locationField = _NewMarkerForm.querySelector("#Charity-Location");
+            var charityName = _NewMarkerForm.querySelector("#Charity-Name");
             locationDisplay.value = Geolocation.Longitude + " " + Geolocation.Latitude;
             locationField.value = Geolocation.Longitude + " " + Geolocation.Latitude;
+
+            BindOnce(charityName, "keyup", "Autocomplete", AutoCompleteCharity);
+
             InterceptFormSubmission();
         } else {
             var loginButton = _NewMarkerForm.querySelector("#new-marker-login");
@@ -473,11 +479,7 @@
 
     function InterceptFormSubmission() {
         // bind a function to the event once
-        if (_NewMarkerForm["submitEvent"] === undefined) {
-            console.log("binding form once");
-            _NewMarkerForm.addEventListener("submit", SubmitNewMarker);
-            _NewMarkerForm["submitEvent"] = "bound";
-        }
+        BindOnce(_NewMarkerForm, "submit", "SubmitEvent", SubmitNewMarker);
     }
 
     function DeactivateAddMarkerForm() {
@@ -609,6 +611,7 @@
             distanceContainer.appendChild(distanceInMeters);
             // append the distance container to the details container
             charityDetails.appendChild(distanceContainer);
+            // TODO: Render how long ago they were seen here
 
             // append the charity details to the details container
             detailsDiv.appendChild(charityDetails);
@@ -624,6 +627,65 @@
     function UnrenderDetailList() {
         var markerDetails = document.querySelector("#marker-details");
         markerDetails.innerHTML = null;
+    }
+
+
+
+    var AutoCompleteCharity = Debounce(AutoCompleteCharitySuggestion, 250);
+
+    function AutoCompleteCharitySuggestion(Event) {
+        function Search(Term) {
+            return new Promise(function (resolve, reject) {
+                var oReq = new XMLHttpRequest();
+                oReq.onreadystatechange = function () {
+                    if (oReq.readyState === 4) {
+                        resolve(JSON.parse(oReq.response));
+                    }
+                };
+                oReq.open("GET", "Api/GetCharitySuggestion?name=" + Term);
+                oReq.send();
+            });
+        }
+
+        function AutocompleteItemEvent(CharityName, Term) {
+            _NewMarkerForm.querySelector("#Charity-Name").value = CharityName;
+
+            // Bump the selected term for autocomplete scores
+            var oReq = new XMLHttpRequest();
+            oReq.onreadystatechange = function () {
+                if (oReq.readyState === 4) {
+                    console.log("Bumped name " + CharityName + " for term " + Term);
+                }
+            };
+            oReq.open("GET", "Api/BumpCharitySuggestion?name=" + CharityName + "&Term=" + Term);
+            //oReq.withCredentials = true;
+            oReq.send();
+
+
+            ClearAutoComplete();
+        }
+
+        function ClearAutoComplete() {
+            var autocompleteTarget = document.querySelector("#autocomplete-container");
+            autocompleteTarget.innerHTML = null;
+        }
+
+
+        Search(Event.target.value)
+            .then(function (res) {
+                // this is garbage, I need to _not_ query for this selector every time this function fires.
+                var autocompleteTarget = document.querySelector("#autocomplete-container");
+                autocompleteTarget.innerHTML = null;
+                if (res.length > 0) {
+                    for (var i in res) {
+                        var item = document.createElement("li");
+                        item.innerHTML = res[i];
+                        item.addEventListener("click", function () { AutocompleteItemEvent(res[i], Event.target.value) });
+                        autocompleteTarget.appendChild(item);
+                        //console.log(res[i]);
+                    }
+                }
+            });
     }
 
     return {

@@ -10,161 +10,157 @@
 </div>
 <div class="is-small-screen-container is-hidden" id="add-new-marker-form">
     @if(!User.isLoggedIn) {
-        <div class="message is-warning">
-            <div class="message-header">
-                <p><i class="fa fa-warning"></i> Not Logged In</p>
+    <div class="message is-warning">
+        <div class="message-header">
+            <p><i class="fa fa-warning"></i> Not Logged In</p>
 
-            </div>
-            <div class="message-body">
-                <div class="container is-fluid">You'll need to be logged in before you'll be able to add a new location.</div>
-                <div class="container has-text-centered">
-                    <a id="new-marker-login" class="button" href="~/Login/@(LoginProvider.AuthenticationScheme)" style="color: #fff !important; background-color:#3b5998; border-color:#496bb2">
-                        <span class="icon"><i class="fa fa-facebook"></i></span>
-                        <span class="has-text-weight-bold">
-                            Login with @(LoginProvider.AuthenticationScheme)
-                        </span>
-                    </a>
-                    <span></span>
-                    <div class="container is-fluid has-text-centered">(You'll be redirected back to the marker you just placed after logging in)</div>
-                </div>
+        </div>
+        <div class="message-body">
+            <div class="container is-fluid">You'll need to be logged in before you'll be able to add a new location.</div>
+            <div class="container has-text-centered">
+                <a id="new-marker-login" class="button" href="~/Login/@(LoginProvider.AuthenticationScheme)" style="color: #fff !important; background-color:#3b5998; border-color:#496bb2">
+                    <span class="icon"><i class="fa fa-facebook"></i></span>
+                    <span class="has-text-weight-bold">
+                        Login with @(LoginProvider.AuthenticationScheme)
+                    </span>
+                </a>
+                <span></span>
+                <div class="container is-fluid has-text-centered">(You'll be redirected back to the marker you just placed after logging in)</div>
             </div>
         </div>
+    </div>
     } else {
-        <div class="container">
-            <form action="~/Add/NewMarker" method="post" asp-antiforgery="true" enctype="application/x-www-form-urlencoded">
-                <div class="field is-horizontal">
-                    <div class="field-label is-normal">
-                        <label class="label">Location</label>
-                    </div>
-                    <div class="field-body">
-                        <div class="field has-addons">
-                            <div class="control">
-                                <span class="button is-static">
-                                    <span>Pre-filled</span>
-                                </span>
-                            </div>
-                            <div class="control is-expanded has-icons-left">
-                                <span class="icon is-normal">
-                                    <i class="fa fa-location-arrow"></i>
-                                </span>
-                                <input class="input is-static" type="text" placeholder="Charity Location" id="Location-Display" disabled />
-                                <input type="hidden" name="Location" id="Charity-Location" />
-                            </div>
+    <div class="container">
+        <form action="~/Add/NewMarker" method="post" asp-antiforgery="true" enctype="application/x-www-form-urlencoded">
+            <div class="field is-horizontal">
+                <div class="field-label is-normal">
+                    <label class="label">Location</label>
+                </div>
+                <div class="field-body">
+                    <div class="field has-addons">
+                        <div class="control">
+                            <span class="button is-static">
+                                <span>Pre-filled</span>
+                            </span>
+                        </div>
+                        <div class="control is-expanded has-icons-left">
+                            <span class="icon is-normal">
+                                <i class="fa fa-location-arrow"></i>
+                            </span>
+                            <input class="input is-static" type="text" placeholder="Charity Location" id="Location-Display" disabled />
+                            <input type="hidden" name="Location" id="Charity-Location" />
                         </div>
                     </div>
                 </div>
-                <div class="field is-horizontal">
-                    <div class="field-label is-normal">
-                        <label class="label" for="Charity-Name">Charity</label>
-                    </div>
-                    <div class="field-body">
-                        <div class="field">
-                            <div class="control is-expanded">
-                                <input class="input" type="text" name="Name" placeholder="Charity Name" id="Charity-Name" />
-                            </div>
-                            <div class="control">
-                                <ul>
-                                    <li>
-                                        Auto complete list <em>when</em>.
-                                    </li>
-                                </ul>
-                            </div>
+            </div>
+            <div class="field is-horizontal">
+                <div class="field-label is-normal">
+                    <label class="label" for="Charity-Name">Charity</label>
+                </div>
+                <div class="field-body">
+                    <div class="field">
+                        <div class="control is-expanded">
+                            <input class="input" type="text" name="Name" placeholder="Charity Name" id="Charity-Name" autocomplete="off" />
+                        </div>
+                        <div class="control autocomplete">
+                            <ul id="autocomplete-container"></ul>
                         </div>
                     </div>
                 </div>
-                <div class="field is-horizontal">
-                    <div class="field-label">
-                        <span class="label">How are they?</span>
-                    </div>
-                    <div class="field-body">
-                        <div class="field">
-                            <div class="control">
-                                <div class="columns">
-                                    <div class="column">
-                                        <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
+            </div>
+            <div class="field is-horizontal">
+                <div class="field-label">
+                    <span class="label">How are they?</span>
+                </div>
+                <div class="field-body">
+                    <div class="field">
+                        <div class="control">
+                            <div class="columns">
+                                <div class="column">
+                                    <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
+                                        <span>
                                             <span>
-                                                <span>
-                                                    <input type="checkbox" name="Doing" value="obnoxious" />
-                                                </span>
-                                                <span>
-                                                    Obnoxious
-                                                </span>
+                                                <input type="checkbox" name="Doing" value="obnoxious" />
                                             </span>
-                                        </label>
-                                    </div>
-                                    <div class="column">
-                                        <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
                                             <span>
-                                                <span>
-                                                    <input type="checkbox" name="Doing" value="blocking-path" />
-                                                </span>
-                                                <span>
-                                                    Blocking the Path
-                                                </span>
+                                                Obnoxious
                                             </span>
-                                        </label>
-                                    </div>
-                                    <div class="column">
-                                        <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
+                                        </span>
+                                    </label>
+                                </div>
+                                <div class="column">
+                                    <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
+                                        <span>
                                             <span>
-                                                <span>
-                                                    <input type="checkbox" name="Doing" value="pushy" />
-                                                </span>
-                                                <span>
-                                                    Pushy
-                                                </span>
+                                                <input type="checkbox" name="Doing" value="blocking-path" />
                                             </span>
-                                        </label>
-                                    </div>
-                                    <div class="column">
-                                        <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
                                             <span>
-                                                <span>
-                                                    <input type="checkbox" name="Doing" value="self-righteous" />
-                                                </span>
-                                                <span>
-                                                    Self Righteous
-                                                </span>
+                                                Blocking the Path
                                             </span>
-                                        </label>
-                                    </div>
-                                    <div class="column">
-                                        <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
+                                        </span>
+                                    </label>
+                                </div>
+                                <div class="column">
+                                    <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
+                                        <span>
                                             <span>
-                                                <span>
-                                                    <input type="checkbox" name="Doing" value="very-annoying" />
-                                                </span>
-                                                <span>
-                                                    Being really annoying
-                                                </span>
+                                                <input type="checkbox" name="Doing" value="pushy" />
                                             </span>
-                                        </label>
-                                    </div>
-                                    <div class="column">
-                                        <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
                                             <span>
-                                                <span>
-                                                    <input type="checkbox" name="Doing" value="undercover" />
-                                                </span>
-                                                <span>
-                                                    Plain clothes
-                                                </span>
+                                                Pushy
                                             </span>
-                                        </label>
-                                    </div>
+                                        </span>
+                                    </label>
+                                </div>
+                                <div class="column">
+                                    <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
+                                        <span>
+                                            <span>
+                                                <input type="checkbox" name="Doing" value="self-righteous" />
+                                            </span>
+                                            <span>
+                                                Self Righteous
+                                            </span>
+                                        </span>
+                                    </label>
+                                </div>
+                                <div class="column">
+                                    <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
+                                        <span>
+                                            <span>
+                                                <input type="checkbox" name="Doing" value="very-annoying" />
+                                            </span>
+                                            <span>
+                                                Being really annoying
+                                            </span>
+                                        </span>
+                                    </label>
+                                </div>
+                                <div class="column">
+                                    <label class="checkbox button is-fullwidth" style="justify-content: flex-start;">
+                                        <span>
+                                            <span>
+                                                <input type="checkbox" name="Doing" value="undercover" />
+                                            </span>
+                                            <span>
+                                                Plain clothes
+                                            </span>
+                                        </span>
+                                    </label>
                                 </div>
                             </div>
-                            <span class="help">Leave these unchecked if they were <strong><em>not</em></strong> annoying</span>
                         </div>
+                        <span class="help">Leave these unchecked if they were <strong><em>not</em></strong> annoying</span>
                     </div>
                 </div>
-                <div class="field has-addons has-addons-right">
-                    <div class="control">
-                        <button class="button is-link is-medium">Submit</button>
-                    </div>
+            </div>
+            <div class="field has-addons has-addons-right">
+                <div class="control">
+                    <button class="button is-link is-medium">Submit</button>
                 </div>
-            </form>
-        </div>
+            </div>
+        </form>
+    </div>
     }
 </div>
 
@@ -194,8 +190,8 @@
 <div id="info"></div>
 
 @section Scripts {
-    <script type="text/javascript" src="~/js/Maps/map.js" asp-append-version="true"></script>
-    <script type="text/javascript">
+<script type="text/javascript" src="~/js/Maps/map.js" asp-append-version="true"></script>
+<script type="text/javascript">
         /*
         // iOS console logging, because I don't own a Mac to see console log
         // Why the fuck is that the only way to actually get console.log?
@@ -233,6 +229,7 @@
             }
         })();
         */
+
         if ("geolocation" in navigator) {
             PageBusyOverlay.Show("Waiting on MapBox...");
                 navigator.geolocation.getCurrentPosition(function (position) {
@@ -256,12 +253,17 @@
                     );
                     cm.RenderMap(position);
                 }, function (err) {
-                    console.log(err); // I'd love to shove this into an XHR call to log the error later for mobile stuff.
-                    // probably have it trigger a modal to let the user know as well.
+                    // After a point, safari on iOS will stop prompting the user for location permission, prompting a location reset.
+                    // It's a bit heavy handed resetting all location access for every single phone app,
+                    // so I believe there is a built in timeout for this where it'll start prompting again.
+                    // I'm still unsure on whether or not I want to remove this location requirement. I probably won't,
+                    // I don't store the users location after all, but it still might irritate some users later on.
+                    PageBusyOverlay.Error(["Error loading map. " + err.message, "<a href='/Help/Geolocation'>Why do you need my location?</a>"]);
+                    // I'd love to shove this into an XHR call to log the error later for mobile stuff still.
                 });
             } else {
                 alert("can't locate");
                 // geolocation IS NOT available
             }
-    </script>
+</script>
 }

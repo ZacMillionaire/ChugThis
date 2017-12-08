@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Nulah.ChugThis.Controllers.Autocomplete;
 using Nulah.ChugThis.Models;
 using Nulah.ChugThis.Models.Geo;
 using StackExchange.Redis;
@@ -53,8 +54,9 @@ namespace Nulah.ChugThis.Controllers.Charity {
             // The race condition is unlikely, but hey, I get to pretend to know a thing.
             // This validates my degree.
 
-            string charityNameKey = CharityName.ToLower();
-            charityNameKey = System.Text.RegularExpressions.Regex.Replace(charityNameKey, @"[^\w\d]+", "");
+            var AutoComplete = new AutocompleteManager(_redis, _settings);
+
+            string charityNameKey = this.ToKeyFormat(CharityName);
 
             var charityKey = $"{_charityBaseKey}:{charityNameKey}";
 
@@ -78,6 +80,7 @@ namespace Nulah.ChugThis.Controllers.Charity {
 
                 _redis.HashSet(charityKey, "Profile", newCharityEntry.ToString());
                 AddCharityToIndex(NewCharityId, charityNameKey);
+                AutoComplete.AddWordToAutoComplete(CharityName, "Charity");
                 return newCharityEntry;
             }
         }
@@ -93,6 +96,7 @@ namespace Nulah.ChugThis.Controllers.Charity {
             // this is kind of a dumb way to do this, the charity Id could be the charities key,
             // however, doing it the current way ensures that duplicates don't exist.
             _redis.HashSet(_charityIndexKey, CharityId, CharityName);
+            // Not that I couldn't just ensure they don't exist another way...
         }
 
         private void RemoveCharityFromIndex(long CharityId) {
@@ -154,7 +158,7 @@ namespace Nulah.ChugThis.Controllers.Charity {
         /// <returns></returns>
         public Charity GetOrCreateCharityByName(string CharityName) {
 
-            var charityKey = $"{_charityBaseKey}:{CharityName}";
+            var charityKey = $"{_charityBaseKey}:{this.ToKeyFormat(CharityName)}";
             Charity charityProfile;
 
             if(_redis.HashExists(charityKey, "Profile")) {
@@ -178,8 +182,7 @@ namespace Nulah.ChugThis.Controllers.Charity {
         /// <param name="MarkerId"></param>
         public void AddMarkerToCharity(string CharityName, long MarkerId) {
 
-            string charityNameKey = CharityName.ToLower();
-            charityNameKey = System.Text.RegularExpressions.Regex.Replace(charityNameKey, @"[^\w\d]+", "");
+            string charityNameKey = this.ToKeyFormat(CharityName);
 
             var charityKey = $"{CharityBaseKey}:{charityNameKey}";
             List<long> MarkerSet;
@@ -217,6 +220,24 @@ namespace Nulah.ChugThis.Controllers.Charity {
             await Task.WhenAll(list);
 
             return list.Select(x => JsonConvert.DeserializeObject<Charity>(x.Result)).ToList();
+        }
+
+        /// <summary>
+        ///     <para>
+        /// Returns the name of a charity as its redis key format.
+        ///     </para>
+        ///     <para>
+        /// Pushes it to lowercase, and removes everything matching [^\w\d]+
+        ///     </para>
+        /// </summary>
+        /// <param name="CharityName"></param>
+        /// <returns></returns>
+        private string ToKeyFormat(string CharityName) {
+
+            string charityNameKey = CharityName.ToLower();
+            charityNameKey = System.Text.RegularExpressions.Regex.Replace(charityNameKey, @"[^\w\d]+", "");
+
+            return charityNameKey;
         }
 
     }
