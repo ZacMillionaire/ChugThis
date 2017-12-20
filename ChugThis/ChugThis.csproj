@@ -7,12 +7,10 @@
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
   </PropertyGroup>
 
-  <ItemGroup>
-    <Compile Remove="wwwroot\css\NewFolder\**" />
-    <Content Remove="wwwroot\css\NewFolder\**" />
-    <EmbeddedResource Remove="wwwroot\css\NewFolder\**" />
-    <None Remove="wwwroot\css\NewFolder\**" />
-  </ItemGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <WarningsAsErrors />
+  </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.All" Version="2.0.0" />
@@ -25,13 +23,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="Areas\Index\Views\Partials\" />
     <Folder Include="wwwroot\images\" />
-    <Folder Include="wwwroot\js\" />
     <Folder Include="wwwroot\lib\" />
   </ItemGroup>
 
-  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="powershell.exe -NoProfile -NonInteractive -File &quot;$(SolutionDir)ChugThis\pre-build.ps1&quot;" />
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent" Condition="'$(OS)' == 'Windows_NT'">
+    <Exec Command="powershell.exe -ExecutionPolicy Bypass -NoProfile -NonInteractive -File &quot;$(SolutionDir)ChugThis\pre-build.ps1&quot;&#xD;&#xA;" />
   </Target>
 
 </Project>

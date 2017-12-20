@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Nulah.ChugThis.Controllers.Users;
 using Nulah.ChugThis.Models.Users;
 using StackExchange.Redis;
 using System;
@@ -36,24 +37,14 @@ namespace Nulah.ChugThis.Filters {
             // There's no reason you can't pull more useful data later on in a controller based on a property here.
             if(user.Identity.IsAuthenticated) {
                 // create a PublicUser object with data from redis
-                //var UserKey = user.Claims.First(x => x.Type == "RedisKey").Value;
-                //UserData = UserProfile.GetUser(UserKey, _redis);
+                var UserKey = user.Claims.First(x => x.Type == "RedisKey").Value;
+                UserData = UserController.GetUser(UserKey, _redis);
 
-                // For now we'll just build a PublicUser profile from claims.
-                // Usually I'd store something more complex in a database, then build a PublicUser in a Redis cache
-                // and pull from there each request but for this project I've no real need to do so.
-                // Plus, I don't really want to store real names in a database. In memory should be "safe" enough.
-                // If there's some brand new brand name vuln that allows you to peak at memory for ASP I'll be wondering why the fuck
-                // they aren't just going for API keys or something else.
-                UserData.Id = user.Claims.First(x => x.Type == ClaimTypes.NameIdentifier).Value;
-                UserData.Name = user.Claims.First(x => x.Type == ClaimTypes.GivenName).Value;
-                UserData.Provider = user.Claims.First().Subject.AuthenticationType;
                 UserData.isLoggedIn = true;
             }
 
             // Inject the PublicUser into view data for the rest of the request.
             ViewData.Add("User", UserData);
-
         }
     }
 }

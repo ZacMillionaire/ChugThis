@@ -10,15 +10,14 @@
     <title>@ViewData["Title"] - ChugThis</title>
 
     <environment include="Development">
-        <link rel="stylesheet" href="~/css/bulma/bulma.css" />
-        <link rel="stylesheet" href="~/css/fontawesome/font-awesome.min.css" />
-        <link rel="stylesheet" href="~/css/site.css" />
+        <link rel="stylesheet" href="~/css/bulma/bulma.css" asp-append-version="true" />
+        <link rel="stylesheet" href="~/css/fontawesome/font-awesome.css" asp-append-version="true" />
+        <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     </environment>
     <environment exclude="Development">
-        <link rel="stylesheet" href="https://ajax.aspnetcdn.com/ajax/bootstrap/3.3.7/css/bootstrap.min.css"
-              asp-fallback-href="~/lib/bootstrap/dist/css/bootstrap.min.css"
-              asp-fallback-test-class="sr-only" asp-fallback-test-property="position" asp-fallback-test-value="absolute" />
-        <link rel="stylesheet" href="~/css/site.min.css" asp-append-version="true" />
+        <link rel="stylesheet" href="~/css/bulma/bulma.min.css" asp-append-version="true" />
+        <link rel="stylesheet" href="~/css/fontawesome/font-awesome.min.css" asp-append-version="true" />
+        <link rel="stylesheet" href="~/css/site.min.css" asp-append-version="true" asp-fallback-href="~/css/site.css" />
     </environment>
 </head>
 <body>
@@ -51,16 +50,30 @@
         </div>
 
     </nav>
-
+    <div id="page-busy-overlay">
+        <div class="loading">
+            <div class="spinner">
+                <div class="double-bounce1"></div>
+                <div class="double-bounce2"></div>
+            </div>
+            <span id="loading-text"></span>
+        </div>
+    </div>
+    <div id="page-error-overlay">
+        <div class="error">
+            <div class="cutesy-error-shit">:(</div>
+            <span id="error-text"></span>
+        </div>
+    </div>
     <div class="container is-fluid" style="height: 100%">
         @RenderBody()
-    </div>
-    <div class="container is-fluid">
-        Build: @_settings.Version.VersionString
-    </div>
+        <div class="container is-fluid">
+            Build: @_settings.Version.VersionString
+        </div>
 
+    </div>
     <environment include="Development">
-        <script src="~/js/site.js" asp-append-version="true"></script>
+        <script src="~/js/helper.js" asp-append-version="true"></script>
     </environment>
     @RenderSection("Scripts", required: false)
 </body>

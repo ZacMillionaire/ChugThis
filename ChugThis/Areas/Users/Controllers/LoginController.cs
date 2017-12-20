@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Nulah.ChugThis.Models.Users;
 using StackExchange.Redis;
 using Nulah.ChugThis.Models;
+using Nulah.ChugThis.Controllers.Users;
 
 namespace ChugThis.Areas.Users.Controllers {
     [Area("Users")]
@@ -32,10 +33,10 @@ namespace ChugThis.Areas.Users.Controllers {
         // TODO: Sort out the routing and such for when a user denies access on the provider end.
         [Route("~/Login/{Provider}")]
         [UserFilter(RequiredLoggedInState: false)]
-        public async Task<IActionResult> LoginWithProvider(string error, string error_description, string Provider) {
+        public async Task<IActionResult> LoginWithProvider(string error, string error_description, string Provider, string RedirectUri = "/") {
             if(error == null && error_description == null) {
                 var challenge = HttpContext.ChallengeAsync(Provider, properties: new AuthenticationProperties {
-                    RedirectUri = "/"
+                    RedirectUri = RedirectUri
                 });
                 await challenge;
             }
@@ -50,6 +51,12 @@ namespace ChugThis.Areas.Users.Controllers {
             await signOut;
 
             if(signOut.IsCompleted) {
+
+                var userRedisKey = HttpContext.User.Claims.First(x => x.Type == "RedisKey").Value;
+                var userController = new UserController(_redis, _settings);
+
+                userController.LogUserOut(( (PublicUser)ViewData["User"] ).Id);
+
                 // Blank the PublicUser profile so the view doesn't have lingering logged in side effects
                 ViewData["User"] = new PublicUser();
             }

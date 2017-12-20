@@ -28,6 +28,7 @@ namespace Nulah.ChugThis.Areas.Index.Controllers {
             // This is done every request instead of startup, in case a key needs to be rotated because some cheeky
             // fuck decided to lift our key for their own use.
             ViewData["MapBoxKey"] = MapController.GetMapBoxApiKey(_redis, _settings);
+            ViewData["LoginProvider"] = _settings.OAuthProviders.Where(x => x.ProviderShort == "FB").First();
             return View();
         }
     }

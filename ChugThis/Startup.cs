@@ -21,6 +21,7 @@ using Nulah.ChugThis.Controllers.Maps;
 using System.Runtime.InteropServices;
 using System.Reflection;
 using Newtonsoft.Json;
+using System.Web;
 
 namespace Nulah.ChugThis {
     public class Startup {
@@ -33,7 +34,7 @@ namespace Nulah.ChugThis {
             _ApplicationSettings = new AppSettings();
             Configuration.Bind(_ApplicationSettings);
 
-            var versionFile = System.IO.Directory.GetCurrentDirectory() + "\\version.json";
+            var versionFile = System.IO.Directory.GetCurrentDirectory() + "/version.json";
             // Check if a version file exists. If not, create a new one.
             if(!System.IO.File.Exists(versionFile)) {
                 // If we're in development, assume this is a visual studio build
@@ -131,7 +132,17 @@ namespace Nulah.ChugThis {
                         // parse the resulting JSON to extract the relevant information, and add the correct claims.
                         OnCreatingTicket = async context => {
                             await UserOAuth.RegisterUser(context, loginProvider, Redis, _ApplicationSettings);
-                        },
+                        },/*
+                        // Here until I figure out what magic kestrel needs to actually work with https.
+                        // Apparently it's not a thing you should do (which is why I have it proxied behind nginx): https://github.com/aspnet/KestrelHttpServer/issues/1108
+                        // but it's still fucking annoying having my redirect_uri's going to http, because https causes a weird handshake bug because asdfklsflkashfdaslkf
+                        // I'm a "professional", btw. There's no way you'd actually think that looking at my code though.
+                        OnRedirectToAuthorizationEndpoint = context => {
+                            var uri = HttpUtility.ParseQueryString(context.RedirectUri);
+                            uri["redirect_uri"] = uri["redirect_uri"].Replace("http","https");
+                            context.Response.Redirect(uri.ToString());
+                            return Task.FromResult(0);
+                        },*/
                         OnRemoteFailure = async context => {
                             await UserOAuth.OAuthRemoteFailure(context, loginProvider, Redis, _ApplicationSettings);
                             context.HttpContext.Response.StatusCode = 500;

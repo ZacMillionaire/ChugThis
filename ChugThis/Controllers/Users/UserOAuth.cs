@@ -15,6 +15,7 @@ using Nulah.ChugThis.Models.Users;
 
 namespace Nulah.ChugThis.Controllers.Users {
     public class UserOAuth {
+
         internal static async Task RegisterUser(OAuthCreatingTicketContext context, Provider LoginProvider /* change this later */, IDatabase Redis, AppSettings Settings) {
             var request = new HttpRequestMessage(HttpMethod.Get, context.Options.UserInformationEndpoint);
             request.Headers.Authorization = new AuthenticationHeaderValue(LoginProvider.AuthorizationHeader, context.AccessToken);
@@ -23,35 +24,17 @@ namespace Nulah.ChugThis.Controllers.Users {
             var response = await context.Backchannel.SendAsync(request, context.HttpContext.RequestAborted);
             response.EnsureSuccessStatusCode();
             var oauthres = await response.Content.ReadAsStringAsync();
+
             // I hope this should be generic enough for most OAuth /me responses.
             // I'm almost sure they'll always have a name field, and I'm 100% sure they'll always have an id field.
             var identity = JsonConvert.DeserializeObject<User>(oauthres, new JsonSerializerSettings {
                 DefaultValueHandling = DefaultValueHandling.Ignore,
                 NullValueHandling = NullValueHandling.Ignore
             });
+            identity.ProviderShort = LoginProvider.ProviderShort;
+            identity.Provider = LoginProvider.AuthenticationScheme;
 
-            context.Identity.AddClaims(
-                new List<Claim> {
-                    new Claim(
-                        ClaimTypes.NameIdentifier,
-                        $"{LoginProvider.ProviderShort}-{identity.Id}",
-                        ClaimValueTypes.String,
-                        context.Options.ClaimsIssuer
-                    ),
-                    new Claim(
-                        ClaimTypes.GivenName,
-                        identity.Name,
-                        ClaimValueTypes.String,
-                        context.Options.ClaimsIssuer
-                    ),
-                    new Claim(
-                        "RedisKey",
-                        $"{Settings.ConnectionStrings.Redis.BaseKey}Users:{LoginProvider.ProviderShort}-{identity.Id}",
-                        ClaimValueTypes.String,
-                        context.Options.ClaimsIssuer
-                    )
-                }
-            );
+            CreateUser(identity, context, Redis, Settings);
         }
 
         // If we're here it's probably because of Reddit's OAuth being broken/garbage, or ASP .Net Core 2.0 having a fucking stupid auth library.
@@ -60,6 +43,36 @@ namespace Nulah.ChugThis.Controllers.Users {
         internal static Task OAuthRemoteFailure(RemoteFailureContext context, Provider loginProvider, IDatabase redis, AppSettings applicationSettings) {
             //throw new Exception("Fuck it");
             return Task.CompletedTask;
+        }
+
+        private static void CreateUser(User LoggingInUser, OAuthCreatingTicketContext OAuthContext, IDatabase Redis, AppSettings Settings) {
+            var userController = new UserController(Redis, Settings);
+            var userKey = userController.GetUserTableKey(LoggingInUser);
+
+            OAuthContext.Identity.AddClaims(
+                new List<Claim> {
+                    new Claim(
+                        ClaimTypes.NameIdentifier,
+                        $"{LoggingInUser.ProviderShort}-{LoggingInUser.Id}",
+                        ClaimValueTypes.String,
+                        OAuthContext.Options.ClaimsIssuer
+                    ),
+                    new Claim(
+                        ClaimTypes.GivenName,
+                        LoggingInUser.Name,
+                        ClaimValueTypes.String,
+                        OAuthContext.Options.ClaimsIssuer
+                    ),
+                    new Claim(
+                        "RedisKey",
+                        userKey,
+                        ClaimValueTypes.String,
+                        OAuthContext.Options.ClaimsIssuer
+                    )
+                }
+            );
+
+            userController.GetOrCreateUser(LoggingInUser);
         }
 
     }
